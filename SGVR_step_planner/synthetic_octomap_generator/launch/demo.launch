@@ -1,0 +1,29 @@
+<?xml version="1.0" ?>
+<launch>
+  <arg name="step_area_ratio" default="0.99"/>
+  <arg name="step_randomize_value" default="0.01"/>
+  <arg name="randomized_planning" default="false"/>
+  <arg name="num_planning_steps" default="10"/>
+   
+  <node pkg="synthetic_octomap_generator" type="classify_octomap_region" name="classify_octomap_region" />
+  
+     
+  <node pkg="mobile_path_planning" type="mobile_path_planning" name="mobile_path_planning" output="screen">
+    <param name="step_area_ratio" type="double" value="$(arg step_area_ratio)" />
+    <param name="step_randomize_value" type="double" value="$(arg step_randomize_value)" />
+    <param name="randomized_planning" type="bool" value="$(arg randomized_planning)" />
+    <param name="num_planning_steps" type="int" value="$(arg num_planning_steps)" />
+  </node>
+
+  <!--
+  <node pkg="rosbag" type="play" name="player" output="screen" args="$(find synthetic_octomap_generator)/bag/2019-10-22-20-34-22.bag"/>
+-->
+  <!-- RViz -->
+  <arg name="rviz" default="true"/>
+  <node if="$(arg rviz)" pkg="rviz" type="rviz" name="$(anon rviz)" respawn="false" output="screen" args="-d $(find synthetic_octomap_generator)/rviz/rviz.rviz" />
+  
+  <!-- 
+  <node pkg="rosservice" type="rosservice" name="set_logger_level" args="call /$(anon rviz)/set_logger_level '{logger: 'rosout', level: 'ERROR'}'"/>
+ -->
+</launch>
+

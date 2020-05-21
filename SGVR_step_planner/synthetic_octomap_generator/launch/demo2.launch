@@ -1,0 +1,30 @@
+<?xml version="1.0" ?>
+<launch>
+  <arg name="num_planning_steps" default="200"/>
+  <arg name="step_area_ratio" default="0.99"/>
+  <arg name="step_randomize_value" default="0.01"/>
+  <arg name="randomized_planning" default="false"/>
+
+  
+  
+  <node pkg="synthetic_octomap_generator" type="generate_synthetic_scene" name="generate_synthetic_scene" >
+  <param name="environment_filename" type="string" value="$(find synthetic_octomap_generator)/world_configuration/stepping_stone_environment.txt"/>
+  <param name="stepable_filename" type="string" value="$(find synthetic_octomap_generator)/world_configuration/stepping_region_steppable.txt"/>
+ <!--  <param name="stepable_filename" type="string" value="$(find synthetic_octomap_generator)/world_configuration/stepping_region_narrowpath.txt"/> -->
+  </node>
+   <!--
+  <node pkg="mobile_path_planning" type="mobile_path_planning" name="mobile_path_planning" >
+    <param name="step_area_ratio" type="double" value="$(arg step_area_ratio)" />
+    <param name="step_randomize_value" type="double" value="$(arg step_randomize_value)" />
+    <param name="randomized_planning" type="bool" value="$(arg randomized_planning)" />
+    <param name="num_planning_steps" type="int" value="$(arg num_planning_steps)" />
+  </node>
+ -->
+  <!-- RViz -->
+  <arg name="rviz" default="true"/>
+  <node if="$(arg rviz)" pkg="rviz" type="rviz" name="$(anon rviz)" respawn="false" output="screen" args="-d $(find synthetic_octomap_generator)/rviz/footstep_planning_example.rviz" />
+  
+  <node pkg="rosservice" type="rosservice" name="set_logger_level" args="call /$(anon rviz)/set_logger_level '{logger: 'rosout', level: 'ERROR'}'"/>
+
+</launch>
+

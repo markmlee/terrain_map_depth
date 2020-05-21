@@ -1,0 +1,19 @@
+#goal definition
+int32       ros_cmd
+float64[20] des_footsteps
+int32       step_num
+int32       footstep_flag
+int32       lr_state
+
+---
+
+#result definition
+int32 gazelle_result
+int32 step_phase            #current step phase of podo
+int32 lr_state
+
+
+---
+
+#feedback
+string state

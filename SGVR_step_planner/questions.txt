@@ -1,0 +1,18 @@
+footstep dimension specify where?
+plan region NOT point but rather dimension of foot
+
+=========================
+stepping stone plan
+
+step_plan gets stuck bc 2D path follows edge NOT middle
+
+step_area_ratio not seem to be working for rotation
+
+==================
+obstacle
+
+
+===================
+narrow path
+
+cant plan
