@@ -54,10 +54,27 @@ ros::Publisher octomap_publisher;
 ros::Publisher octomap_env_publisher;
 ros::Publisher pcloud_pubisher;
 //pcl::visualization::PCLVisualizer viewer("Cloud Viewer");
+
+bool tf_ready = false;
+float cam_base_x = 0;
+float cam_base_y = 0;
+float cam_base_z = 0;
+float cam_base_qx = 0;
+float cam_base_qy = 0;
+float cam_base_qz = 0;
+float cam_base_qw = 0;
  
 void update_obstacle(const octomap::point3d& _center, const octomap::point3d& _length, octomap::OcTree& _octree);
 
 void pc2_callback(const sensor_msgs::PointCloud2::ConstPtr &msg){
+	
+	
+	if(!tf_ready) 
+	{
+		ROS_INFO("pcloud CB: tf not ready");
+		return;	
+	}
+	
     pcl::PCLPointCloud2 pcl_pc2;
     pcl_conversions::toPCL(*msg, pcl_pc2);
     //input
@@ -70,11 +87,13 @@ void pc2_callback(const sensor_msgs::PointCloud2::ConstPtr &msg){
     pcl::fromPCLPointCloud2(pcl_pc2, *cloud);
    
     tf::Transform cam2world_transform;
-    cam2world_transform.setOrigin(tf::Vector3(0.2,-0.03,0.74));
+    cam2world_transform.setOrigin(tf::Vector3(cam_base_x,cam_base_y,cam_base_z));
+    ROS_INFO("Translation x: %f, y: %f, z: %f\n",cam_base_x,cam_base_y,cam_base_z);
+    
     tf::Quaternion q;
     //q.setRPY(3.7961,0,-1.5708); //37.5+180 0 -90 deg
     //q.setRPY(3.7524,0,-1.5708); //35+180 0 -90 deg
-    q.setRPY(3.7088,0,-1.5708); //32.5+180 0 -90 deg
+    q.setRPY(2.6878,0,1.5708); //32.5+180 0 -90 deg
     //q.setRPY(3.6215,0,-1.5708); //27.5+180 0 -90 deg
     cam2world_transform.setRotation(q);
     Eigen::Matrix4f sensorToWorld;
@@ -83,7 +102,7 @@ void pc2_callback(const sensor_msgs::PointCloud2::ConstPtr &msg){
     pcl::transformPointCloud(*cloud, *cloud, sensorToWorld);
    
     //downsample
-ROS_INFO("cloud input size: %d, width: %d, height!: %d\n",cloud->size(), cloud->width, cloud->height);
+	ROS_INFO("cloud input size: %u, width: %u, height!: %u\n",(unsigned)cloud->size(), (unsigned)cloud->width, (unsigned)cloud->height);
 
 
  pcl::VoxelGrid<pcl::PointXYZ> voxl_grid_filter;
@@ -92,26 +111,15 @@ ROS_INFO("cloud input size: %d, width: %d, height!: %d\n",cloud->size(), cloud->
  voxl_grid_filter.filter (*cloud_downsampled);
  
     //============= passthrough filter pcloud in XYZ  =============
-ROS_INFO("cloud input size: %d, width: %d, height!: %d\n",cloud_downsampled->size(), cloud_downsampled->width, cloud_downsampled->height);
-
-
-
-//passthrough filter
-/*
-pcl::PassThrough<pcl::PointXYZ> pass;
-pass.setInputCloud (cloud);
-pass.setFilterFieldName ("z");
-pass.setFilterLimits (0.0, 0.25);
-pass.filter (*cloud_passthrough);
-*/
+//ROS_INFO("cloud input size: %u, width: %u, height!: %u\n",cloud_downsampled->size(), cloud_downsampled->width, cloud_downsampled->height);
 
 
 float minX = 0;
 float maxX = 2.0;
-float minY = -1.0;
-float maxY = 1.0;
-float minZ = -0.04;
-float maxZ = 0.1;
+float minY = -0.5;
+float maxY = 0.5;
+float minZ = -0.1;
+float maxZ = 0.5;
 
 pcl::CropBox<pcl::PointXYZ> boxFilter;
 boxFilter.setMin(Eigen::Vector4f(minX, minY, minZ, 1.0));
@@ -120,74 +128,15 @@ boxFilter.setInputCloud(cloud_downsampled);
 boxFilter.filter(*cloud_passthrough);
 
 
-ROS_INFO("cloud input size: %d, width: %d, height!: %d\n",cloud_passthrough->size(), cloud_passthrough->width, cloud_passthrough->height);
-
+	ROS_INFO("cloud input size: %u, width: %u, height!: %u\n",(unsigned)cloud_passthrough->size(), (unsigned)cloud_passthrough->width, (unsigned)cloud_passthrough->height);
+	
 //===============================================
    
-    //============= get plane of steps =============
-   
-    /*
-    //segmentation object
-    pcl::SACSegmentation<pcl::PointXYZ> seg;
-    //point indices for the new segmented plane
-    pcl::PointIndices inliers;
 
-    //model for segmentation: plane perpendicular to some axis
-    seg.setModelType(pcl::SACMODEL_PERPENDICULAR_PLANE);
-    //ransac method
-seg.setMethodType (pcl::SAC_RANSAC);
-// Set the distance to the plane for a point to be an inlier.
-seg.setDistanceThreshold (0.03);
-
-// Make sure that the plane is perpendicular to Z-axis, 10 degree tolerance.
-Eigen::Vector3f axis;
-axis << 0, 0, 1;
-seg.setAxis(axis);
-seg.setEpsAngle(pcl::deg2rad(10.0));
- 
-// coeff contains the coefficients of the plane:
-// ax + by + cz + d = 0
-pcl::ModelCoefficients coeff;
-    //coefficient refinement
-seg.setOptimizeCoefficients (true);
-seg.segment(inliers, coeff);
-    */
-
-
-
-//===============================================
-
-//============= Visualize Markers =============
-/*
-int v1(0);
-viewer.createViewPort (0.0, 0.0, 0.5, 1.0, v1);
-viewer.setBackgroundColor (0, 0, 0, v1);
-viewer.addText ("original", 10, 10, "original cloud", v1);
-viewer.addPointCloud (cloud_passthrough,"body");
-
-int v2(0);
-viewer.createViewPort (0.5, 0.0, 1.0, 1.0, v2);
-viewer.setBackgroundColor (0, 0, 0, v2);
-viewer.addText ("filtered", 10, 10, "filtered cloud", v2);
-viewer.addPointCloud (cloud_passthrough,"body");
-
-    viewer.spin();
-    */
-    /*
-// Convert to ROS data type
-sensor_msgs::PointCloud2 output_pcloud_msg;
-pcl::PCLPointCloud2 PCL_point_cloud2;
-
-pcl::fromPCLPointCloud2( PCL_point_cloud2, *cloud_passthrough); //PCLPointCloud2, PointCloudXYZ
-
-pcl_conversions::fromPCL(PCL_point_cloud2, output_pcloud_msg);
-pcloud_pubisher(output_pcloud_msg);
-*/
-//===============================================
 
 
     // Generate a fake octomap for test
-    const double RESOLUTION = 0.025;
+    const double RESOLUTION = 0.01;
     octomap::OcTree octree(RESOLUTION);
     octomap::OcTree octree_env(RESOLUTION);
     for(int i = 0; i < cloud_passthrough->size(); i++){
@@ -195,9 +144,9 @@ pcloud_pubisher(output_pcloud_msg);
 		//update_obstacle(octomap::point3d(cloud_passthrough->at(i).x, cloud_passthrough->at(i).y, cloud_passthrough->at(i).z), octomap::point3d(RESOLUTION,RESOLUTION,RESOLUTION), octree);
 
         // Add obstacles to octree
-                // update_obstacle(center point, length of each edge, octree)
+        // update_obstacle(center point, length of each edge, octree)
 
-       if (cloud_passthrough->at(i).x > 0 && cloud_passthrough->at(i).x < 2.0 && cloud_passthrough->at(i).y > -0.5 && cloud_passthrough->at(i).y < 0.5 && cloud_passthrough->at(i).z > -0.03 && cloud_passthrough->at(i).z < 0.04)
+       if (cloud_passthrough->at(i).x > 0 && cloud_passthrough->at(i).x < 2.0 && cloud_passthrough->at(i).y > -0.5 && cloud_passthrough->at(i).y < 0.5 && cloud_passthrough->at(i).z > -0.05 && cloud_passthrough->at(i).z < 0.05)
 		update_obstacle(octomap::point3d(cloud_passthrough->at(i).x, cloud_passthrough->at(i).y, 0.0), octomap::point3d(RESOLUTION,RESOLUTION,RESOLUTION), octree);
 
 	else if(cloud_passthrough->at(i).y > 0.5 || cloud_passthrough->at(i).y < -0.5 )
@@ -226,15 +175,52 @@ int main(int argc, char** argv){
 
     ros::NodeHandle nh;
     // Subscriber
-    ros::Subscriber pc2_subscriber = nh.subscribe<sensor_msgs::PointCloud2>("/camera/depth_registered/points", 10, pc2_callback);
+    //ros::Subscriber pc2_subscriber = nh.subscribe<sensor_msgs::PointCloud2>("/camera/depth_registered/points", 10, pc2_callback);
+    ros::Subscriber pc2_subscriber = nh.subscribe<sensor_msgs::PointCloud2>("/points2", 10, pc2_callback);
 
     // Publisher
     octomap_publisher = nh.advertise<octomap_msgs::Octomap>("/stepping_stones", 1);
     octomap_env_publisher = nh.advertise<octomap_msgs::Octomap>("/environment", 1);
-pcloud_pubisher = nh.advertise<sensor_msgs::PointCloud2>("mobile_hubo/pcloud_space_filter", 1);
+	pcloud_pubisher = nh.advertise<sensor_msgs::PointCloud2>("mobile_hubo/pcloud_space_filter", 1);
+	
+	tf::TransformListener listener(ros::Duration(10)); //cache time
+	
+	ros::Rate loop_rate(50);
+
+	while(nh.ok())
+	{
+		
+		//lookup tranform between cam and base_link frame
+		
+		tf::StampedTransform transform;
+		try{
+			listener.waitForTransform("/base_link", "/depth_camera_link", ros::Time(0), ros::Duration(0.02));
+			listener.lookupTransform("/base_link", "/depth_camera_link",  ros::Time(0), transform);
+			
+			cam_base_x = transform.getOrigin().x();
+			cam_base_y = transform.getOrigin().y();
+			cam_base_z = transform.getOrigin().z();
+			cam_base_qx = transform.getRotation().x();
+			cam_base_qy = transform.getRotation().y();
+			cam_base_qz = transform.getRotation().z();
+			cam_base_qw = transform.getRotation().w();
+			
+			tf_ready = true;
+		}
+			
+		catch (tf::TransformException ex){
+		  ROS_ERROR("TF ERROR: %s",ex.what());
+		  ros::Duration(0.1).sleep();
+		}
+			
+			
+		loop_rate.sleep();
+		ros::spinOnce();
+		
+	}
 
 
-    ros::spin();
+    
 
     return 0;
 }

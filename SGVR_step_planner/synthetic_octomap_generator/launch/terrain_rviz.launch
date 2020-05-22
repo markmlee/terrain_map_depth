@@ -1,0 +1,13 @@
+<?xml version="1.0" ?>
+<launch>
+  
+  
+  
+  <!-- RViz -->
+  <arg name="rviz" default="true"/>
+  <node if="$(arg rviz)" pkg="rviz" type="rviz" name="$(anon rviz)" respawn="false" output="screen" args="-d $(find synthetic_octomap_generator)/rviz/terrain_map.rviz" />
+  
+  <node pkg="rosservice" type="rosservice" name="set_logger_level" args="call /$(anon rviz)/set_logger_level '{logger: 'rosout', level: 'ERROR'}'"/>
+
+</launch>
+
