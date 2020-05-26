@@ -28,6 +28,7 @@ typedef actionlib::SimpleActionClient<gogo_gazelle::MotionAction> Client;
 typedef struct _footstep_{
     float   x;
     float   y;
+    float   r;
     int     step_phase;
     int     lr_state;
 }footstep;
@@ -38,17 +39,27 @@ int cur_phase = 0;
 int gazelle_phase = -1;
 int FLAG_walking = false;
 
-float pelv_width = 0.12;
+float pelv_width = 0.2157;
 
+//footstep test1[] = {
+//    {0.25,  -pelv_width/2,  10., 0, RIGHT},
+//    {0.25,   pelv_width/2, -10., 1, LEFT},
+//    {0.25,  -pelv_width/2,  10., 2, RIGHT},
+//    {0.25,   pelv_width/2, -10., 3, LEFT},
+//    {0.25,  -pelv_width/2,  10., 4, RIGHT},
+//    {0.25,   pelv_width/2, -10., 5, LEFT},
+//    {0.25,  -pelv_width/2,  10., 6, RIGHT},
+//    {0.0,    pelv_width/2, -10., 7, LEFT}
+//};
 footstep test1[] = {
-    {0.25,  -pelv_width, 0,  RIGHT},
-    {0.50,   pelv_width, 1,  LEFT},
-    {0.75,  -pelv_width, 2,  RIGHT},
-    {1.00,   pelv_width, 3,  LEFT},
-    {1.25,  -pelv_width, 4,  RIGHT},
-    {1.50,   pelv_width, 5,  LEFT},
-    {1.75,  -pelv_width, 6,  RIGHT},
-    {1.75,   pelv_width, 7,  LEFT}
+    {0.25,  -0.05, 0., 0, RIGHT},
+    {0.50,   0.05, 0., 1, LEFT},
+    {0.75,  -0.05, 0., 2, RIGHT},
+    {1.00,   0.05, 0., 3, LEFT},
+    {1.25,  -0.05, 0., 4, RIGHT},
+    {1.50,   0.05, 0., 5, LEFT},
+    {1.75,  -pelv_width/2, 0., 6, RIGHT},
+    {1.75,   pelv_width/2, 0., 7, LEFT}
 };
 
 
@@ -94,7 +105,7 @@ public:
 
         for(int i=0;i<4;i++)
         {
-            next_foot[i] = {0.,0.,0,0};
+            next_foot[i] = {0.,0.,0., 0,0};
 
 
             if(_cur_phase == sizeof(test1)/sizeof(footstep) - 1)
@@ -109,10 +120,11 @@ public:
                 cp++;
             }
 
-            walking_goal.des_footsteps[4*i    ] = -next_foot[i].x;
-            walking_goal.des_footsteps[4*i + 1] = next_foot[i].y;
-            walking_goal.des_footsteps[4*i + 2] =  next_foot[i].step_phase;
-            walking_goal.des_footsteps[4*i + 3] =  next_foot[i].lr_state;
+            walking_goal.des_footsteps[5*i    ] = -next_foot[i].x;
+            walking_goal.des_footsteps[5*i + 1] = next_foot[i].y;
+            walking_goal.des_footsteps[5*i + 2] = next_foot[i].r;
+            walking_goal.des_footsteps[5*i + 3] =  next_foot[i].step_phase;
+            walking_goal.des_footsteps[5*i + 4] =  next_foot[i].lr_state;
             walking_goal.lr_state = next_foot[0].lr_state;
         }
 

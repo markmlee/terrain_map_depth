@@ -348,9 +348,19 @@ int main(int argc, char *argv[])
 		tf_robot_camera.setRotation(tf::Quaternion(0,0.462,0,0.887 ));
 		br.sendTransform(tf::StampedTransform(tf_robot_camera, ros::Time::now(), "/robot_com", "/camera_link"));
 		*/
+		
+		//camera angle same direction as robot
+		/*
 		tf::Transform tf_robot_camera;
 		tf_robot_camera.setOrigin(tf::Vector3(0.2,0,0.14)); //between foot to kinect RGB lens  
 		tf_robot_camera.setRotation(tf::Quaternion(-0.831,0,0.556,0 )); //22.5 (90-22.5 = 67.5)
+		br.sendTransform(tf::StampedTransform(tf_robot_camera, ros::Time::now(), "/robot_com", "/camera_base"));
+		*/
+		
+		//camera angle opposite as robot
+		tf::Transform tf_robot_camera;
+		tf_robot_camera.setOrigin(tf::Vector3(-0.24,0,0.14)); //between foot to kinect RGB lens  
+		tf_robot_camera.setRotation(tf::Quaternion(0,0.831,0,0.556 )); //22.5 (90-22.5 = 67.5)
 		br.sendTransform(tf::StampedTransform(tf_robot_camera, ros::Time::now(), "/robot_com", "/camera_base"));
 		
 		

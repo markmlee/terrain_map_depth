@@ -93,7 +93,7 @@ void pc2_callback(const sensor_msgs::PointCloud2::ConstPtr &msg){
     tf::Quaternion q;
     //q.setRPY(3.7961,0,-1.5708); //37.5+180 0 -90 deg
     //q.setRPY(3.7524,0,-1.5708); //35+180 0 -90 deg
-    q.setRPY(2.6878,0,1.5708); //32.5+180 0 -90 deg
+    q.setRPY(2.6878,0,-1.5708); //32.5+180 0 -90 deg
     //q.setRPY(3.6215,0,-1.5708); //27.5+180 0 -90 deg
     cam2world_transform.setRotation(q);
     Eigen::Matrix4f sensorToWorld;
@@ -139,19 +139,19 @@ boxFilter.filter(*cloud_passthrough);
     const double RESOLUTION = 0.01;
     octomap::OcTree octree(RESOLUTION);
     octomap::OcTree octree_env(RESOLUTION);
-    for(int i = 0; i < cloud_passthrough->size(); i++){
+    for(int i = 0; i < cloud_downsampled->size(); i++){
 		
-		//update_obstacle(octomap::point3d(cloud_passthrough->at(i).x, cloud_passthrough->at(i).y, cloud_passthrough->at(i).z), octomap::point3d(RESOLUTION,RESOLUTION,RESOLUTION), octree);
+		update_obstacle(octomap::point3d(cloud_downsampled->at(i).x, cloud_downsampled->at(i).y, cloud_downsampled->at(i).z), octomap::point3d(RESOLUTION,RESOLUTION,RESOLUTION), octree);
 
         // Add obstacles to octree
         // update_obstacle(center point, length of each edge, octree)
-
-       if (cloud_passthrough->at(i).x > 0 && cloud_passthrough->at(i).x < 2.0 && cloud_passthrough->at(i).y > -0.5 && cloud_passthrough->at(i).y < 0.5 && cloud_passthrough->at(i).z > -0.05 && cloud_passthrough->at(i).z < 0.05)
+/*
+       if (cloud_passthrough->at(i).x > 0 && cloud_passthrough->at(i).x < 2.0 && cloud_passthrough->at(i).y > -0.5 && cloud_passthrough->at(i).y < 0.5 && cloud_passthrough->at(i).z > -0.05 && cloud_passthrough->at(i).z < 0.15)
 		update_obstacle(octomap::point3d(cloud_passthrough->at(i).x, cloud_passthrough->at(i).y, 0.0), octomap::point3d(RESOLUTION,RESOLUTION,RESOLUTION), octree);
 
 	else if(cloud_passthrough->at(i).y > 0.5 || cloud_passthrough->at(i).y < -0.5 )
 		update_obstacle(octomap::point3d(cloud_passthrough->at(i).x, cloud_passthrough->at(i).y, 1.0), octomap::point3d(RESOLUTION,RESOLUTION,RESOLUTION), octree_env);
-
+*/
     }
     
     // Publish the generated map
