@@ -360,7 +360,7 @@ int main(int argc, char *argv[])
 		//camera angle opposite as robot
 		tf::Transform tf_robot_camera;
 		tf_robot_camera.setOrigin(tf::Vector3(-0.24,0,0.14)); //between foot to kinect RGB lens  
-		tf_robot_camera.setRotation(tf::Quaternion(0,0.831,0,0.556 )); //22.5 (90-22.5 = 67.5)
+		tf_robot_camera.setRotation(tf::Quaternion(0,0.843,0,0.537 )); //22.5 (90-22.5 = 67.5)
 		br.sendTransform(tf::StampedTransform(tf_robot_camera, ros::Time::now(), "/robot_com", "/camera_base"));
 		
 		
