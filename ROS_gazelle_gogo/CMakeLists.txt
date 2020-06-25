@@ -1,6 +1,14 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(gogo_gazelle)
-add_compile_options(-std=c++11)
+
+## Compile as C++11, supported in ROS Kinetic and newer
+set(CMAKE_BUILD_TYPE Release)
+# set(CMAKE_BUILD_TYPE Debug)
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    add_compile_options(-std=c++11)
+else()
+    add_compile_options(-std=c++11 -O3)
+endif()
 
 find_package(catkin REQUIRED COMPONENTS
   roscpp
@@ -41,6 +49,9 @@ target_link_libraries(test_footstep ${catkin_LIBRARIES})
 
 add_executable(test_footstep_vision src/test_footstep_vision.cpp src/lanros2podo.cpp src/lanpodo2ros.cpp)
 target_link_libraries(test_footstep_vision ${catkin_LIBRARIES})
+
+add_executable(client_depth src/client_depth.cpp src/lanros2podo.cpp src/lanpodo2ros.cpp)
+target_link_libraries(client_depth ${catkin_LIBRARIES})
 
 
 add_executable(com_estimate src/com_estimate.cpp src/lanros2podo.cpp src/lanpodo2ros.cpp)

@@ -334,8 +334,39 @@ int main(int argc, char *argv[])
             message.imu_sensor[i] = RX.imu_sensor[i];
         }*/
         
+        
         //publish TF
-        //world to robot
+        //world from t265 ===================================
+        
+        //t265 to world
+        tf::Transform tf_world_track;
+		tf_world_track.setOrigin(tf::Vector3(-0.24,0.0325,-0.775));  //t265 TF at center (3.25cm y)
+		tf_world_track.setRotation(tf::Quaternion(-0.012,0,1,0));
+		br.sendTransform(tf::StampedTransform(tf_world_track, ros::Time::now(), "/camera_odom_frame", "/world"));
+		
+		//t265 to cam d435
+		/*
+		tf::Transform tf_track_camera;
+		tf_track_camera.setOrigin(tf::Vector3(0,0,-0.02));  
+		tf_track_camera.setRotation(tf::Quaternion(0,0.462,0,0.887 ));
+		br.sendTransform(tf::StampedTransform(tf_track_camera, ros::Time::now(), "/t265_pose_frame", "/camera_link"));
+		*/
+		
+
+		//t265 to base
+		tf::Transform tf_track_base_link;
+		tf_track_base_link.setOrigin(tf::Vector3(-0.24,-0,-0.775));  
+		tf_track_base_link.setRotation(tf::Quaternion(0,0,1,0));
+		br.sendTransform(tf::StampedTransform(tf_track_base_link, ros::Time::now(), "/camera_pose_frame", "/base_link"));
+		
+		//t265 to kinect
+		tf::Transform tf_track_camera;
+		tf_track_camera.setOrigin(tf::Vector3(-0.24,0,0.775));  
+		tf_track_camera.setRotation(tf::Quaternion(0,0.848,0,0.530));
+		br.sendTransform(tf::StampedTransform(tf_track_camera, ros::Time::now(), "/base_link", "/camera_base"));
+		
+		
+        //world to robot_com
         tf::Transform tf_world_robot;
 		tf_world_robot.setOrigin(tf::Vector3(RX.pel_pos_est[0], RX.pel_pos_est[1],RX.pel_pos_est[2]));  
 		tf_world_robot.setRotation(tf::Quaternion(RX.pel_quaternion[1],RX.pel_quaternion[2],RX.pel_quaternion[3],RX.pel_quaternion[0]));
@@ -344,11 +375,11 @@ int main(int argc, char *argv[])
 		//camera angle
 		/*
 		tf::Transform tf_robot_camera;
-		tf_robot_camera.setOrigin(tf::Vector3(0.2,0.03,0.14)); //between foot to D435 RGB lens  
+		tf_robot_camera.setOrigin(tf::Vector3(-0.2,-0.03,0.14)); //between foot to D435 RGB lens  
 		tf_robot_camera.setRotation(tf::Quaternion(0,0.462,0,0.887 ));
 		br.sendTransform(tf::StampedTransform(tf_robot_camera, ros::Time::now(), "/robot_com", "/camera_link"));
 		*/
-		
+
 		//camera angle same direction as robot
 		/*
 		tf::Transform tf_robot_camera;
@@ -358,9 +389,10 @@ int main(int argc, char *argv[])
 		*/
 		
 		//camera angle opposite as robot
+		/*
 		tf::Transform tf_robot_camera;
 		tf_robot_camera.setOrigin(tf::Vector3(-0.24,0,0.14)); //between foot to kinect RGB lens  
-		tf_robot_camera.setRotation(tf::Quaternion(0,0.843,0,0.537 )); //22.5 (90-22.5 = 67.5)
+		tf_robot_camera.setRotation(tf::Quaternion(0,0.848,0,0.530 )); //26 (90-26 = 64)
 		br.sendTransform(tf::StampedTransform(tf_robot_camera, ros::Time::now(), "/robot_com", "/camera_base"));
 		
 		
@@ -369,6 +401,7 @@ int main(int argc, char *argv[])
 		tf_robot_baselink.setOrigin(tf::Vector3(0,0,-1*RX.pel_pos_est[2]));  
 		tf_robot_baselink.setRotation(tf::Quaternion(0,0,0,1));
 		br.sendTransform(tf::StampedTransform(tf_robot_baselink, ros::Time::now(), "/robot_com", "/base_link"));
+		*/
 		
 		tf::Transform tf_world_map;
 		tf_world_map.setOrigin(tf::Vector3(0,0,0));  

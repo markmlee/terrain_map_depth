@@ -6,12 +6,13 @@
   <arg name="randomized_planning" default="false"/>
 
   
-  
+  <!-- 
   <node pkg="synthetic_octomap_generator" type="generate_synthetic_scene" name="generate_synthetic_scene" >
   <param name="environment_filename" type="string" value="$(find synthetic_octomap_generator)/world_configuration/stepping_stone_environment.txt"/>
   <param name="stepable_filename" type="string" value="$(find synthetic_octomap_generator)/world_configuration/stepping_region_steppable.txt"/>
- <!--  <param name="stepable_filename" type="string" value="$(find synthetic_octomap_generator)/world_configuration/stepping_region_narrowpath.txt"/> -->
+  <param name="stepable_filename" type="string" value="$(find synthetic_octomap_generator)/world_configuration/stepping_region_narrowpath.txt"/>
   </node>
+   -->
    <!--
   <node pkg="mobile_path_planning" type="mobile_path_planning" name="mobile_path_planning" >
     <param name="step_area_ratio" type="double" value="$(arg step_area_ratio)" />

@@ -10,19 +10,19 @@
   <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" />
   <arg name="depth_enabled" default="true" />
   <!-- Enable or disable the depth camera -->
-  <arg name="depth_mode" default="NFOV_UNBINNED" />
+  <arg name="depth_mode" default="WFOV_UNBINNED" />
   <!-- Set the depth camera mode, which affects FOV, depth range, and camera resolution. See Azure Kinect documentation for full details. Valid options: NFOV_UNBINNED, NFOV_2X2BINNED, WFOV_UNBINNED, WFOV_2X2BINNED, and PASSIVE_IR -->
-  <arg name="color_enabled" default="true" />
+  <arg name="color_enabled" default="false" />
   <!-- Enable or disable the color camera -->
   <arg name="color_format" default="bgra" />
   <!-- The format of RGB camera. Valid options: bgra, jpeg -->
   <arg name="color_resolution" default="720P" />
   <!-- Resolution at which to run the color camera. Valid options: 720P, 1080P, 1440P, 1536P, 2160P, 3072P -->
-  <arg name="fps" default="5" />
+  <arg name="fps" default="15" />
   <!-- FPS to run both cameras at. Valid options are 5, 15, and 30 -->
   <arg name="point_cloud" default="true" />
   <!-- Generate a point cloud from depth data. Requires depth_enabled -->
-  <arg name="rgb_point_cloud" default="true" />
+  <arg name="rgb_point_cloud" default="false" />
   <!-- Colorize the point cloud using the RBG camera. Requires color_enabled and depth_enabled -->
   <arg name="point_cloud_in_depth_frame" default="false" />
   <!-- Whether the RGB pointcloud is rendered in the depth frame (true) or RGB frame (false). Will either match the resolution of the depth camera (true) or the RGB camera (false). -->
