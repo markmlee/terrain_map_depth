@@ -10,12 +10,17 @@
 #define USE_ROTATION
 
 class FootstepPlanner {
-protected:
+public:
     // OPTIONS =========================================================================================================
     const double D = 0.09; // Displacement between center of body and center of foot
     const double SUPPORT_REGION_WIDTH  = 0.35;   // maximum range of next footstep in forward direction [m]
     const double SUPPORT_REGION_HEIGHT = 0.3;   // maximum range of next footstep in side direction [m]
     const double SUPPORT_REGION_BIAS   = 0.05;  //
+
+    const double SUPPORT_REGION_MIN_X  = FOOTSTEP_WIDTH + 0.05;
+    const double SUPPORT_REGION_MAX_X  = SUPPORT_REGION_WIDTH;
+    const double SUPPORT_REGION_MIN_Y  = SUPPORT_REGION_BIAS;
+    const double SUPPORT_REGION_MAX_Y  = SUPPORT_REGION_HEIGHT;
 
 #ifdef USE_ROTATION
     const double SUPPORT_REGION_ROTATION = 0.174533; // maximum range of next footstep in rotation [rad]
@@ -58,11 +63,12 @@ public:
      *
      */
     const std::vector<Configuration>& get_footsteps() const { return footsteps; }
-
     /*
      *
      */
+
     const Configuration& get_next_footstep() const { return footsteps[footsteps.size()-2]; }
+
 
     /*
      *
@@ -75,6 +81,9 @@ public:
     void set_current_footstep_configuration(const Configuration& _configuration, bool _is_right) {
         current_footstep_configuration = _configuration;
         is_current_footstep_right = _is_right;
+    }
+    FootstepNode* get_current_footstep_node() {
+        return new FootstepNode(is_current_footstep_right, current_footstep_configuration);
     }
     void set_current_footstep_configuration(const Configuration& _configuration) {
         current_footstep_configuration = _configuration;
@@ -94,7 +103,7 @@ protected:
     const quadmap::QuadTree* stepping_stones;
 
     Configuration current_footstep_configuration;
-    bool          is_current_footstep_right = true;
+    bool          is_current_footstep_right = false;
 
     /*
      *

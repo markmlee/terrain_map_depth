@@ -26,6 +26,7 @@
 #define VIS_ENVIRONMENT
 #define VIS_STEPPING_STONES
 #define VIS_FOOTSTEPS
+#define VIS_SUPPORT_REGION
 
 class FootstepPlanningServer {
 protected:
@@ -52,6 +53,9 @@ public:
 #endif
 #ifdef VIS_GOAL_POSE
         goal_pose_marker_publisher              = nh.advertise<visualization_msgs::Marker>("hubo_planner/goal_pose", 1);
+#endif
+#ifdef VIS_SUPPORT_REGION
+        support_region_marker_publisher         = nh.advertise<visualization_msgs::Marker>("hubo_planner/support_region", 1);
 #endif
 #ifdef VIS_ENVIRONMENT
         environment_markerarray_publisher       = nh.advertise<visualization_msgs::MarkerArray>("hubo_planner/environment", 1);
@@ -196,6 +200,32 @@ public:
 
         ros::Time start = ros::Time::now();
         bool found = planner.planning(*start_pose, *goal_pose);
+
+#ifdef VIS_SUPPORT_REGION
+        // start footstep
+        FootstepNode* start_footstep = planner.get_current_footstep_node();
+        std::cout << "Start footstep plan: " << (start_footstep->isRight ? "Right" : "Left") << std::endl;
+        std::cout << "Start footstep conf: " << start_footstep->step_conf.x() << " , " << start_footstep->step_conf.y() << std::endl;
+
+        // Support region
+        quadmap::point2d support_region_viz_size = quadmap::point2d((float)planner.SUPPORT_REGION_MAX_X-(float)planner.SUPPORT_REGION_MIN_X+(float)FOOTSTEP_WIDTH,
+                                                                    (float)planner.SUPPORT_REGION_MAX_Y-(float)planner.SUPPORT_REGION_MIN_Y+(float)FOOTSTEP_HEIGHT);
+        float support_region_viz_center_x;
+        float support_region_viz_center_y;
+        if(start_footstep->isRight){
+             support_region_viz_center_x = -planner.SUPPORT_REGION_MIN_X + start_pose->x() - support_region_viz_size.x() / 2.0;
+             support_region_viz_center_y = -planner.SUPPORT_REGION_MIN_Y + start_pose->y() - support_region_viz_size.y() / 2.0;
+        }
+        else{
+            support_region_viz_center_x = -planner.SUPPORT_REGION_MIN_X + start_pose->x() - support_region_viz_size.x() / 2.0;
+            support_region_viz_center_y = planner.SUPPORT_REGION_MIN_Y + start_pose->y() + support_region_viz_size.y() / 2.0;
+        }
+        // visualization data
+        OBB support_region_model(quadmap::point2d(support_region_viz_center_x, support_region_viz_center_y), support_region_viz_size, start_footstep->step_conf.r());
+        visualization::robot_model_to_marker(support_region_model, support_region_marker, FIXED_FRAME_ID);
+        delete start_footstep;
+#endif
+
         if(!found) {
 
             //ros::Time end = ros::Time::now();
@@ -206,7 +236,8 @@ public:
         ros::Time end = ros::Time::now();
         std::cout << "Found the goal: " << (end - start).toSec() << " [sec]" << std::endl;
         std::cout << "Number of footsteps: " << planner.get_footsteps().size() << std::endl;
-
+        // TODO:
+        // set_current_footstep_configuration();
         // Generate the footsteps message
         footsteps_to_message(planner.get_footsteps());
 
@@ -239,6 +270,7 @@ public:
                     RobotModel robot_model(quadmap::point2d(goal_pose->x(), goal_pose->y()), robot_size, goal_pose->r());
                     visualization::robot_model_to_marker(robot_model, goal_pose_marker, FIXED_FRAME_ID);
 #endif
+
                     return true;
                 }
 
@@ -262,6 +294,11 @@ public:
 #ifdef VIS_GOAL_POSE
         if(goal_pose != nullptr && goal_pose_marker_publisher.getNumSubscribers() > 0) {
             goal_pose_marker_publisher.publish(goal_pose_marker);
+        }
+#endif
+#ifdef VIS_SUPPORT_REGION
+        if(support_region_marker_publisher.getNumSubscribers() > 0) {
+            support_region_marker_publisher.publish(support_region_marker);
         }
 #endif
 #ifdef VIS_ENVIRONMENT
@@ -386,6 +423,10 @@ protected:
 #ifdef VIS_FOOTSTEPS
     ros::Publisher                  footstep_markerarray_publisher;
     visualization_msgs::MarkerArray footstep_markerarray;
+#endif
+#ifdef VIS_SUPPORT_REGION
+    ros::Publisher                  support_region_marker_publisher;
+    visualization_msgs::Marker      support_region_marker;
 #endif
 };
 

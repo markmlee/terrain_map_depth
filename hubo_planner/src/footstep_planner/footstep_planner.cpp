@@ -116,8 +116,8 @@ FootstepNode* FootstepPlanner::make_new_sample(const std::vector<FootstepNode*>&
     // 1. Random selection of node index
     std::random_device generator;
     std::uniform_int_distribution<int> index_distribution(0, _footstep_nodes.size()-1);
-    std::uniform_real_distribution<double> width_distribution(FOOTSTEP_WIDTH + 0.05, SUPPORT_REGION_WIDTH);    // 0.05 : to prevent footsteps from overlapping
-    std::uniform_real_distribution<double> height_distribution(SUPPORT_REGION_BIAS, SUPPORT_REGION_HEIGHT);
+    std::uniform_real_distribution<double> width_distribution(SUPPORT_REGION_MIN_X, SUPPORT_REGION_MAX_X);    // 0.05 : to prevent footsteps from overlapping
+    std::uniform_real_distribution<double> height_distribution(SUPPORT_REGION_MIN_Y, SUPPORT_REGION_MAX_Y);
 #ifdef USE_ROTATION
     // std::uniform_real_distribution<double> rotation_distribution(-SUPPORT_REGION_ROTATION, SUPPORT_REGION_ROTATION);
     std::normal_distribution<double> rotation_distribution(0.0, 0.1);
