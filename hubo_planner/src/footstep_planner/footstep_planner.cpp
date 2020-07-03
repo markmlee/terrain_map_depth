@@ -5,6 +5,7 @@ bool FootstepPlanner::planning(const Configuration& _start_conf, const Configura
     // Initialize the start configurations of footsteps
     FootstepNode start_left_footsteps(false);
     FootstepNode start_right_footsteps(true);
+
     set_initial_footsteps_from_pose(_start_conf, start_left_footsteps, start_right_footsteps);
     if(is_current_footstep_right)
         current_footstep_configuration = start_right_footsteps.step_conf;
@@ -180,11 +181,16 @@ bool FootstepPlanner::isLinkToGoalStep(const FootstepNode* _next_footstep, const
 
 //    std::cout << "(" << factor_x << ", " << factor_y << ")" << std::endl;
 
-    if(_next_footstep->isRight)     //if parent of goal is right
-        return factor_x > FOOTSTEP_WIDTH + 0.05 && factor_x < SUPPORT_REGION_WIDTH && factor_y > SUPPORT_REGION_BIAS && factor_y < SUPPORT_REGION_HEIGHT;   // 0.05 : to prevent footsteps from overlapping
+    if(_next_footstep->isRight){     //if parent of goal is right
+//        return factor_x > FOOTSTEP_WIDTH + SUPPORT_REGION_BIAS && factor_x < SUPPORT_REGION_WIDTH && factor_y > SUPPORT_REGION_BIAS && factor_y < SUPPORT_REGION_HEIGHT;   // 0.05 : to prevent footsteps from overlapping
+        return factor_x > FOOTSTEP_WIDTH + SUPPORT_REGION_BIAS && factor_x < SUPPORT_REGION_MAX_X && factor_y > SUPPORT_REGION_BIAS && factor_y < SUPPORT_REGION_HEIGHT;   // 0.05 : to prevent footsteps from overlapping
+    }
 
-    else  //if parent of goal is left
-        return factor_x > FOOTSTEP_WIDTH + 0.05 && factor_x < SUPPORT_REGION_WIDTH && -factor_y > SUPPORT_REGION_BIAS && -factor_y < SUPPORT_REGION_HEIGHT;  // 0.05 : to prevent footsteps from overlapping
+    else{  //if parent of goal is left
+//        return factor_x > FOOTSTEP_WIDTH + SUPPORT_REGION_BIAS && factor_x < SUPPORT_REGION_WIDTH && -factor_y > SUPPORT_REGION_BIAS && -factor_y < SUPPORT_REGION_HEIGHT;  // 0.05 : to prevent footsteps from overlapping
+        return factor_x > FOOTSTEP_WIDTH + SUPPORT_REGION_BIAS && factor_x < SUPPORT_REGION_MAX_X && -factor_y > SUPPORT_REGION_BIAS && -factor_y < SUPPORT_REGION_HEIGHT;  // 0.05 : to prevent footsteps from overlapping
+
+    }
 }
 
 bool FootstepPlanner::isAvailableFootStep(const FootstepNode* _footstep_node)
@@ -194,4 +200,14 @@ bool FootstepPlanner::isAvailableFootStep(const FootstepNode* _footstep_node)
         return false;
 
     return isOnSteppingStones(start_footstep_model);
+}
+void FootstepPlanner::transform_footsteps(const tf::StampedTransform &tf_transform) {
+    double roll, pitch, yaw;
+
+    tf::Vector3 translation(tf_transform.getOrigin());
+    tf_transform.getBasis().getRPY(roll, pitch, yaw);
+
+    for(int i = (int)footsteps.size()-1; i >= 0; i--) {
+        footsteps[i].transform(translation.x(), translation.y(), yaw);
+    }
 }

@@ -13,12 +13,15 @@ endif()
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
+
 find_package(catkin REQUIRED COMPONENTS
     roscpp
     geometry_msgs
     octomap_msgs
     visualization_msgs
+    gogo_gazelle
     message_generation
+    tf
 )
 
 ## System dependencies are found with CMake's conventions
@@ -132,6 +135,7 @@ include_directories(
     ${catkin_INCLUDE_DIRS}
     ${QUADMAP_INCLUDE_DIRS}
     ${OCTOMAP_INCLUDE_DIRS}
+    ${gogo_gazelle_INCLUDE_DIRS}
 )
 
 SET(COLLISION_DETECTOR_SRC

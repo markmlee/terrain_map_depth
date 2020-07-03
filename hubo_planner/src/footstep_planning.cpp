@@ -1,5 +1,7 @@
 #include <ros/ros.h>
 
+#include <tf/transform_listener.h>
+
 #include <footstep_planner/footstep_planner.h>
 #include <hubo_planner/utils.h>
 #include <hubo_planner/visualizer.h>
@@ -21,6 +23,8 @@
 #include <gogo_gazelle/MotionAction.h>
 #include <actionlib/client/terminal_state.h>
 
+#include <gogo_gazelle/update.h>
+
 #define VIS_START_POSE
 #define VIS_GOAL_POSE
 #define VIS_ENVIRONMENT
@@ -32,19 +36,18 @@ class FootstepPlanningServer {
 protected:
     // OPTIONS =========================================================================================================
     const std::string   FIXED_FRAME_ID  = "base_link";
+    const std::string   VIS_FRAME_ID    = "map";          // only for visualization
 
     const double        ROBOT_WIDTH  = 0.7;
     const double        ROBOT_HEIGHT = 0.8;
 
-    const double        FOOTSTEP_WIDTH  = 0.22;  // [m]
-    const double        FOOTSTEP_HEIGHT = 0.19;  // [m]
+    const double        FOOTSTEP_WIDTH  = 0.25;  // [m]
+    const double        FOOTSTEP_HEIGHT = 0.24;  // [m]
 
     const double        GOAL_SEARCH_MAX_RADIUS = 1.2;
     const double        GOAL_SEARCH_MIN_RADIUS = 0.2;
     const double        GOAL_SEARCH_LEFT_RIGHT = 0.5;
     const double        GOAL_SEARCH_STEP       = 0.04;
-
-
 
 public:
     FootstepPlanningServer() : nh(), planner(FOOTSTEP_WIDTH, FOOTSTEP_HEIGHT) {
@@ -67,12 +70,12 @@ public:
         footstep_markerarray_publisher          = nh.advertise<visualization_msgs::MarkerArray>("hubo_planner/footstep", 1);
 #endif
 
-        footsteps_publisher         = nh.advertise<hubo_planner::FootstepsStamped>("hubo_planner/footsteps_stamped", 1);
-        environment_subscriber      = nh.subscribe("environment", 1, &FootstepPlanningServer::set_environment, this);
-        stepping_stones_subscriber  = nh.subscribe("stepping_stones", 1, &FootstepPlanningServer::set_stepping_stones, this);
-        begin_subscriber            = nh.subscribe("begin_footstep_planning", 1, &FootstepPlanningServer::begin_footstep_planning, this);
-        result_subscriber = nh.subscribe("walking/result", 1, &FootstepPlanningServer::goal_result_callback, this);
-
+        footsteps_publisher        = nh.advertise<hubo_planner::FootstepsStamped>("hubo_planner/footsteps_stamped", 1);
+        environment_subscriber     = nh.subscribe("environment", 1, &FootstepPlanningServer::set_environment, this);
+        stepping_stones_subscriber = nh.subscribe("stepping_stones", 1, &FootstepPlanningServer::set_stepping_stones, this);
+//        begin_subscriber           = nh.subscribe("begin_footstep_planning", 1, &FootstepPlanningServer::begin_footstep_planning, this);
+        result_subscriber          = nh.subscribe("walking/result", 1, &FootstepPlanningServer::goal_result_callback, this);
+        support_step_subscriber    = nh.subscribe("robot_states", 1, &FootstepPlanningServer::support_step_callback,this);
 
         robot_size      = quadmap::point2d((float)ROBOT_WIDTH, (float)ROBOT_HEIGHT);
         footstep_size   = quadmap::point2d((float)FOOTSTEP_WIDTH, (float)FOOTSTEP_HEIGHT);
@@ -82,13 +85,16 @@ public:
         environment     = nullptr;
         stepping_stones = nullptr;
 
-        begin_flag           = false;
+//        begin_flag           = false;
         environment_flag     = false;
         stepping_stones_flag = false;
 
 #ifdef VIS_START_POSE
+        update_tf();
+        Configuration* transformed_start_pose = start_pose->get_transformed_Configuration(tf_transform_baselink2map);  //transform
         RobotModel robot_model(quadmap::point2d(start_pose->x(), start_pose->y()), robot_size, start_pose->r());
-        visualization::robot_model_to_marker(robot_model, start_pose_marker, FIXED_FRAME_ID);
+        visualization::robot_model_to_marker(robot_model, start_pose_marker, VIS_FRAME_ID);
+        delete transformed_start_pose;
 #endif
     }
     ~FootstepPlanningServer() {
@@ -101,48 +107,58 @@ public:
     /*
      *
      */
-    void begin_footstep_planning(const std_msgs::String::ConstPtr& _msg){
-        begin_flag = true;
-    }
+//    void begin_footstep_planning(const std_msgs::String::ConstPtr& _msg){
+//        begin_flag = true;
+//    }
 
-    bool first_command_flag = true;
-    bool first_result_flag = true;
+
     //update flag from /Result topic
-    void goal_result_callback(const gogo_gazelle::MotionActionResultConstPtr& result)
-      {
-
-
-      if(first_command_flag)
-      {
-        ROS_INFO("ignore first result");
-        first_command_flag = false;
-      }
-
-      else
-      {
-        if(first_result_flag)
-        {
-          ROS_INFO("received result flag. Don't switch L/R");
-          begin_flag = true;
-          first_result_flag = false;
+    //bool first_command_flag = true;
+    //bool first_result_flag = true;
+    void goal_result_callback(const gogo_gazelle::MotionActionResultConstPtr &result) {
+//        if (first_command_flag) {
+//            ROS_INFO("ignore first result");
+//            first_command_flag = false;
+//        }
+//        else {
+//            if (first_result_flag) {
+//                ROS_INFO("received result flag. Don't switch L/R");
+//                begin_flag = true;
+//                first_result_flag = false;
+//            } else {
+//                ROS_INFO("received result flag. switch L/R");
+//                begin_flag = true;
+//                set_current_footstep_configuration();
+//            }
+//        }
+#ifdef VIS_FOOTSTEPS
+        if(!footstep_markerarray.markers.empty() && footstep_markerarray_publisher.getNumSubscribers() > 0) {
+            footstep_markerarray_publisher.publish(footstep_markerarray);
         }
+#endif
+        if(!footsteps_stamped.steps.empty()) {
+            footsteps_publisher.publish(footsteps_stamped);
+        }
+    }
+    void support_step_callback(const gogo_gazelle::updateConstPtr &robot_state){
+        // current_support_step is right
+        if(robot_state->step_phase % 2 == 0){
+            planner.set_current_footstep(true);
+        }
+        // current_support_step is left
         else {
-          ROS_INFO("received result flag. switch L/R");
-          begin_flag = true;
-          set_current_footstep_configuration();
+            planner.set_current_footstep(false);
         }
-
-      }
-
-      }
-
+    }
 
     /*
      *
      */
     void set_environment(const octomap_msgs::Octomap::ConstPtr& _msg) {
         // Only if begin_flag is true, this function is executed
-        if(!begin_flag || environment_flag)
+//        if(!begin_flag || environment_flag)
+//            return;
+        if(environment_flag)
             return;
 
         auto environment_3d = (octomap::OcTree*)octomap_msgs::binaryMsgToMap(*_msg);
@@ -154,7 +170,7 @@ public:
 //        std::cout << "Set environment: " << environment->size() << std::endl;
 
 #ifdef VIS_ENVIRONMENT
-        visualization::environment_to_markerarray(environment, environment_markerarray, FIXED_FRAME_ID);
+        visualization::environment_to_markerarray(environment, environment_markerarray, VIS_FRAME_ID);
 #endif
 
         delete environment_3d;
@@ -166,7 +182,9 @@ public:
      */
     void set_stepping_stones(const octomap_msgs::Octomap::ConstPtr& _msg) {
         // Only if (begin_flag && environment_flag) is true, this function is executed
-        if(!begin_flag || stepping_stones_flag)
+//        if(!begin_flag || stepping_stones_flag)
+//            return;
+        if(stepping_stones_flag)
             return;
 //      std::cout << "inside callback "  << std::endl;
         auto stepping_stones_3d = (octomap::OcTree*)octomap_msgs::binaryMsgToMap(*_msg);
@@ -180,7 +198,7 @@ public:
         //std::cout << "Set stepping stones: " << stepping_stones->size() << std::endl;
 
 #ifdef VIS_STEPPING_STONES
-        visualization::stepping_stones_to_markerarray(stepping_stones, stepping_stones_markerarray, FIXED_FRAME_ID);
+        visualization::stepping_stones_to_markerarray(stepping_stones, stepping_stones_markerarray, VIS_FRAME_ID);
 #endif
 
         delete stepping_stones_3d;
@@ -196,17 +214,14 @@ public:
       if(stepping_stones == nullptr || start_pose == nullptr || goal_pose == nullptr)
             return false;
 
-
-
         ros::Time start = ros::Time::now();
         bool found = planner.planning(*start_pose, *goal_pose);
 
 #ifdef VIS_SUPPORT_REGION
         // start footstep
         FootstepNode* start_footstep = planner.get_current_footstep_node();
-        std::cout << "Start footstep plan: " << (start_footstep->isRight ? "Right" : "Left") << std::endl;
-        std::cout << "Start footstep conf: " << start_footstep->step_conf.x() << " , " << start_footstep->step_conf.y() << std::endl;
-
+        //::cout << "Start footstep plan: " << (start_footstep->isRight ? "Left" : "Right") << std::endl;
+        //std::cout << "Start footstep conf: " << start_footstep->step_conf.x() << " , " << start_footstep->step_conf.y() << std::endl;
         // Support region
         quadmap::point2d support_region_viz_size = quadmap::point2d((float)planner.SUPPORT_REGION_MAX_X-(float)planner.SUPPORT_REGION_MIN_X+(float)FOOTSTEP_WIDTH,
                                                                     (float)planner.SUPPORT_REGION_MAX_Y-(float)planner.SUPPORT_REGION_MIN_Y+(float)FOOTSTEP_HEIGHT);
@@ -222,7 +237,7 @@ public:
         }
         // visualization data
         OBB support_region_model(quadmap::point2d(support_region_viz_center_x, support_region_viz_center_y), support_region_viz_size, start_footstep->step_conf.r());
-        visualization::robot_model_to_marker(support_region_model, support_region_marker, FIXED_FRAME_ID);
+        visualization::robot_model_to_marker(support_region_model, support_region_marker, VIS_FRAME_ID);
         delete start_footstep;
 #endif
 
@@ -235,15 +250,15 @@ public:
         }
         ros::Time end = ros::Time::now();
         std::cout << "Found the goal: " << (end - start).toSec() << " [sec]" << std::endl;
-        std::cout << "Number of footsteps: " << planner.get_footsteps().size() << std::endl;
-        // TODO:
-        // set_current_footstep_configuration();
-        // Generate the footsteps message
-        footsteps_to_message(planner.get_footsteps());
+//        std::cout << "Number of footsteps: " << planner.get_footsteps().size() << std::endl;   TODO
 
 #ifdef VIS_FOOTSTEPS
-        visualization::footsteps_to_markerarray(planner.get_footsteps(), footstep_size, footstep_markerarray, FIXED_FRAME_ID);
+        visualization::footsteps_to_markerarray(planner.get_footsteps(), footstep_size, footstep_markerarray, VIS_FRAME_ID);
 #endif
+
+        // Generate the footsteps message
+        planner.transform_footsteps(tf_transform_map2baselink);
+        footsteps_to_message(planner.get_footsteps());
 
         return true;
     }
@@ -254,23 +269,34 @@ public:
     bool planning_with_goal_search() {
 
         for(float goal_search_radius = GOAL_SEARCH_MAX_RADIUS; goal_search_radius > GOAL_SEARCH_MIN_RADIUS ; goal_search_radius-=GOAL_SEARCH_STEP){
-            float y    = 0.0;   // to search left,right direction
+            float y    = 0.0;     // to search left,right direction
             float sign = 1.0;     // to calculate y
 
             for(float goal_search_left_right = 0.0; goal_search_left_right <= 2*GOAL_SEARCH_LEFT_RIGHT; goal_search_left_right+=GOAL_SEARCH_STEP){
                 y += sign * goal_search_left_right;
                 sign *= -1.0;     // change the sign
 
+                delete start_pose;
                 delete goal_pose;
-                goal_pose = new Configuration(-goal_search_radius, y, M_PI - y/goal_search_radius);
+
+                update_tf();
+                start_pose = Configuration(0, 0, M_PI).get_transformed_Configuration(tf_transform_baselink2map);           //  fixed_frame : map
+                goal_pose = Configuration(-goal_search_radius, y, M_PI - y/goal_search_radius).get_transformed_Configuration(tf_transform_baselink2map);  // fixed_frame : map
+//                std::cout << "Start pose: " << start_pose->x() << " / " << start_pose->y() << " / " << start_pose->r() << std::endl;
+//                std::cout << "Goal pose: " << goal_pose->x() << " / " << goal_pose->y() << " / " << goal_pose->r() << std::endl;
 
                 if(planning()) {
                     std::cout << "Goal pose: " << goal_pose->x() << " / " << goal_pose->y() << " / " << goal_pose->r() << std::endl;
-#ifdef VIS_GOAL_POSE
-                    RobotModel robot_model(quadmap::point2d(goal_pose->x(), goal_pose->y()), robot_size, goal_pose->r());
-                    visualization::robot_model_to_marker(robot_model, goal_pose_marker, FIXED_FRAME_ID);
-#endif
 
+#ifdef VIS_START_POSE
+                    RobotModel start_robot_model(quadmap::point2d(start_pose->x(), start_pose->y()), robot_size, start_pose->r());
+                    visualization::robot_model_to_marker(start_robot_model, start_pose_marker, VIS_FRAME_ID);
+#endif
+#ifdef VIS_GOAL_POSE
+//                    Configuration* goal_pose_baselink = goal_pose->get_transformed_Configuration(tf_transform_map2baselink);
+                    RobotModel goal_robot_model(quadmap::point2d(goal_pose->x(), goal_pose->y()), robot_size, goal_pose->r());
+                    visualization::robot_model_to_marker(goal_robot_model, goal_pose_marker, VIS_FRAME_ID);
+#endif
                     return true;
                 }
 
@@ -311,15 +337,15 @@ public:
             stepping_stones_markerarray_publisher.publish(stepping_stones_markerarray);
         }
 #endif
-#ifdef VIS_FOOTSTEPS
-        if(!footstep_markerarray.markers.empty() && footstep_markerarray_publisher.getNumSubscribers() > 0) {
-            footstep_markerarray_publisher.publish(footstep_markerarray);
-        }
-#endif
-
-        if(!footsteps_stamped.steps.empty()) {
-            footsteps_publisher.publish(footsteps_stamped);
-        }
+//#ifdef VIS_FOOTSTEPS
+//        if(!footstep_markerarray.markers.empty() && footstep_markerarray_publisher.getNumSubscribers() > 0) {
+//            footstep_markerarray_publisher.publish(footstep_markerarray);
+//        }
+//#endif
+//
+//        if(!footsteps_stamped.steps.empty()) {
+//            footsteps_publisher.publish(footsteps_stamped);
+//        }
     }
 
     /*
@@ -330,7 +356,6 @@ public:
         bool is_right = planner.is_next_footstep_right();
         planner.set_current_footstep_configuration(footstep_configuration, is_right);
     }
-
     /*
      *
      */
@@ -369,15 +394,26 @@ public:
 
     bool isValid_flag(){
         //return begin_flag && environment_flag && stepping_stones_flag;
-        return begin_flag && stepping_stones_flag;
+        //return begin_flag && stepping_stones_flag;  TODO
+        //return begin_flag;
+//        return environment_flag && stepping_stones_flag;
+        return stepping_stones_flag;
     }
 
     bool reset_flag(){
-        begin_flag = false;
+//        begin_flag = false;
         environment_flag = false;
         stepping_stones_flag = false;
     }
-
+    void update_tf(){
+        try{
+            tf_listener.lookupTransform("/map", "/base_link", ros::Time(0), tf_transform_baselink2map);
+            tf_listener.lookupTransform("/base_link", "/map",  ros::Time(0), tf_transform_map2baselink);
+        }
+        catch (tf::TransformException ex){
+            ROS_WARN("%s",ex.what());
+        }
+    }
 protected:
     Configuration*          start_pose;
     Configuration*          goal_pose;
@@ -397,10 +433,14 @@ protected:
     ros::Subscriber         stepping_stones_subscriber;
     ros::Subscriber         begin_subscriber;
     ros::Subscriber         result_subscriber;
-
+    ros::Subscriber         support_step_subscriber;
     ros::Publisher          footsteps_publisher;
 
-    bool                    begin_flag;
+    tf::TransformListener   tf_listener;
+    tf::StampedTransform    tf_transform_baselink2map;
+    tf::StampedTransform    tf_transform_map2baselink;
+
+//    bool                    begin_flag;
     bool                    environment_flag;
     bool                    stepping_stones_flag;
 
@@ -436,15 +476,12 @@ int main(int argc, char** argv)
     ros::NodeHandle nh;
 
     FootstepPlanningServer footstep_planning_server;
-     ros::Rate loop_rate(50);
-     //ROS_WARN("new version");
+     ros::Rate loop_rate(100);
+     ROS_WARN("new version");
 
     try{
         while(true) {
-
             // Begin the footstep planning
-
-
             if(footstep_planning_server.isValid_flag()){
                 ros::Time start = ros::Time::now();
                 footstep_planning_server.planning_with_goal_search();
@@ -454,12 +491,8 @@ int main(int argc, char** argv)
                 //std::cout<<"---------------------------------------------------------"<<std::endl;
                 std::cout << "" << (end - start).toSec() << " [sec]" << std::endl;
                 footstep_planning_server.publish_messages();
-                ROS_WARN("published footstep");
+//                ROS_WARN("published footstep");   TODO
             }
-
-
-
-
             ////////////////////////////////////////////////////////////////////////////////////////////////////////////
             // If the robot move the foot to the next stamp successfully,
             // change "current_footstep_configuration" and "is_current_footstep_right" of footstep planner

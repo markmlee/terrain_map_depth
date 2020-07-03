@@ -63,7 +63,19 @@ struct Configuration {
     {
         return operator()(2);
     }
+    inline void transform(const double &x, const double &y, const double &r){
+        data[0] = data[0] + x;
+        data[1] = data[1] + y;
+        data[2] = data[2] + r;
+    }
+    inline Configuration* get_transformed_Configuration(const tf::StampedTransform &tf_transform){
+        double roll, pitch, yaw;
 
+        tf::Vector3 translation(tf_transform.getOrigin());
+        tf_transform.getBasis().getRPY(roll, pitch, yaw);
+
+        return new Configuration(data[0]+translation.x(), data[1]+translation.y(), data[2]+yaw);
+    }
     float data[3];
 };
 

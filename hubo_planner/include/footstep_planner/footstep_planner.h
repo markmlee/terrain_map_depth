@@ -2,25 +2,27 @@
 #define HUBO_PLANNER_FOOTSTEP_PLANNER_H
 
 #include <quadmap/quadmap.h>
+#include <tf/transform_listener.h>
+
 #include <footstep_planner/footstep_planner_node.h>
 #include <collision_detector/collision_detector.h>
 
 #include <random>
 
-#define USE_ROTATION
+//#define USE_ROTATION
 
 class FootstepPlanner {
 public:
     // OPTIONS =========================================================================================================
     const double D = 0.09; // Displacement between center of body and center of foot
-    const double SUPPORT_REGION_WIDTH  = 0.35;   // maximum range of next footstep in forward direction [m]
-    const double SUPPORT_REGION_HEIGHT = 0.3;   // maximum range of next footstep in side direction [m]
-    const double SUPPORT_REGION_BIAS   = 0.05;  //
+//    const double SUPPORT_REGION_WIDTH  = 0.09;   // maximum range of next footstep in forward direction [m]
+    const double SUPPORT_REGION_HEIGHT = 0.30;   // maximum range of next footstep in side direction [m]
+    const double SUPPORT_REGION_BIAS   = 0.02;  //
 
-    const double SUPPORT_REGION_MIN_X  = FOOTSTEP_WIDTH + 0.05;
-    const double SUPPORT_REGION_MAX_X  = SUPPORT_REGION_WIDTH;
-    const double SUPPORT_REGION_MIN_Y  = SUPPORT_REGION_BIAS;
-    const double SUPPORT_REGION_MAX_Y  = SUPPORT_REGION_HEIGHT;
+    const double SUPPORT_REGION_MIN_X  = 0.24;  // 0.27m = FOOTSET_WIDTH(=0.22m) + SUPPORT_REGION_BIAS(=0.05m)
+    const double SUPPORT_REGION_MAX_X  = 0.33;  // 0.62m = SUPPORT_REGION_MIN_X(=0.27m) + SUPPORT_REGION_WIDTH(=0.35m)
+    const double SUPPORT_REGION_MIN_Y  = 0.05;  // 0.05m = SUPPORT_REGION_BIAS(=0.05m)
+    const double SUPPORT_REGION_MAX_Y  = 0.35;  // 0.30m = SUPPORT_REGION_MAX_X(=0.05m) + SUPPORT_REGION_HEIGHT(=0.30m)
 
 #ifdef USE_ROTATION
     const double SUPPORT_REGION_ROTATION = 0.174533; // maximum range of next footstep in rotation [rad]
@@ -62,6 +64,10 @@ public:
     /*
      *
      */
+    void transform_footsteps(const tf::StampedTransform& tf_transform);
+    /*
+     *
+     */
     const std::vector<Configuration>& get_footsteps() const { return footsteps; }
     /*
      *
@@ -95,6 +101,10 @@ public:
         current_footstep_configuration = footsteps[footsteps.size()-2];
         is_current_footstep_right = !is_current_footstep_right;
     }
+    void set_current_footstep(bool is_right){
+        is_current_footstep_right = is_right;
+    }
+
 
 
 
@@ -103,7 +113,7 @@ protected:
     const quadmap::QuadTree* stepping_stones;
 
     Configuration current_footstep_configuration;
-    bool          is_current_footstep_right = false;
+    bool          is_current_footstep_right = true;
 
     /*
      *
@@ -131,9 +141,13 @@ protected:
      *
      */
     bool isAvailableFootStep(const FootstepNode* _footstep_node);
+    /*
+     *
+     */
 
     const double        FOOTSTEP_WIDTH;
     const double        FOOTSTEP_HEIGHT;
+
     quadmap::point2d    footstep_size;
 
     std::vector<Configuration> footsteps;   // 0-index: goal footstep, last index: start(previous) footstep

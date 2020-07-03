@@ -63,17 +63,15 @@ Visualization Manager:
           Value: true
         camera_base:
           Value: true
-        camera_body:
+        camera_odom_frame:
           Value: true
-        camera_visor:
+        camera_pose_frame:
           Value: true
         depth_camera_link:
           Value: true
         imu_link:
           Value: true
         map:
-          Value: true
-        rgb_camera_link:
           Value: true
         robot_com:
           Value: true
@@ -85,22 +83,18 @@ Visualization Manager:
       Show Axes: true
       Show Names: true
       Tree:
-        world:
-          map:
-            {}
-          robot_com:
+        camera_odom_frame:
+          camera_pose_frame:
             base_link:
+              camera_base:
+                depth_camera_link:
+                  imu_link:
+                    {}
+          world:
+            map:
               {}
-            camera_base:
-              camera_body:
-                {}
-              camera_visor:
-                {}
-              depth_camera_link:
-                imu_link:
-                  {}
-                rgb_camera_link:
-                  {}
+            robot_com:
+              {}
       Update Interval: 0
       Value: true
     - Class: rviz/MarkerArray
@@ -113,9 +107,9 @@ Visualization Manager:
       Value: true
     - Class: octomap_rviz_plugin/OccupancyGrid
       Enabled: true
-      Max. Height Display: inf
+      Max. Height Display: 3.4028234663852886e+38
       Max. Octree Depth: 16
-      Min. Height Display: -inf
+      Min. Height Display: -3.4028234663852886e+38
       Name: OccupancyGrid
       Octomap Topic: /stepping_stones
       Queue Size: 5
@@ -199,4 +193,4 @@ Window Geometry:
     collapsed: false
   Width: 1200
   X: 336
-  Y: 529
+  Y: 499
