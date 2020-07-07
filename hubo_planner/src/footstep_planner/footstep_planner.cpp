@@ -182,13 +182,16 @@ bool FootstepPlanner::isLinkToGoalStep(const FootstepNode* _next_footstep, const
 //    std::cout << "(" << factor_x << ", " << factor_y << ")" << std::endl;
 
     if(_next_footstep->isRight){     //if parent of goal is right
-//        return factor_x > FOOTSTEP_WIDTH + SUPPORT_REGION_BIAS && factor_x < SUPPORT_REGION_WIDTH && factor_y > SUPPORT_REGION_BIAS && factor_y < SUPPORT_REGION_HEIGHT;   // 0.05 : to prevent footsteps from overlapping
-        return factor_x > FOOTSTEP_WIDTH + SUPPORT_REGION_BIAS && factor_x < SUPPORT_REGION_MAX_X && factor_y > SUPPORT_REGION_BIAS && factor_y < SUPPORT_REGION_HEIGHT;   // 0.05 : to prevent footsteps from overlapping
+      //LMY fix that removed support. Y doesnt use min or max for goal
+//              return factor_x > FOOTSTEP_WIDTH + SUPPORT_REGION_BIAS && factor_x < SUPPORT_REGION_MAX_X && factor_y > SUPPORT_REGION_BIAS && factor_y < SUPPORT_REGION_HEIGHT;   // 0.05 : to prevent footsteps from overlapping
+      //fix that use min or max for goal
+      return (factor_x > SUPPORT_REGION_MIN_X) && (factor_x < SUPPORT_REGION_MAX_X) && (factor_y > SUPPORT_REGION_MIN_Y) && (factor_y < SUPPORT_REGION_MAX_Y);
     }
 
     else{  //if parent of goal is left
-//        return factor_x > FOOTSTEP_WIDTH + SUPPORT_REGION_BIAS && factor_x < SUPPORT_REGION_WIDTH && -factor_y > SUPPORT_REGION_BIAS && -factor_y < SUPPORT_REGION_HEIGHT;  // 0.05 : to prevent footsteps from overlapping
-        return factor_x > FOOTSTEP_WIDTH + SUPPORT_REGION_BIAS && factor_x < SUPPORT_REGION_MAX_X && -factor_y > SUPPORT_REGION_BIAS && -factor_y < SUPPORT_REGION_HEIGHT;  // 0.05 : to prevent footsteps from overlapping
+      //LMY fix that removed support. Y doesnt use min or max for goal
+//      return factor_x > FOOTSTEP_WIDTH + SUPPORT_REGION_BIAS && factor_x < SUPPORT_REGION_MAX_X && -factor_y > SUPPORT_REGION_BIAS && -factor_y < SUPPORT_REGION_HEIGHT;  // 0.05 : to prevent footsteps from overlapping
+        return (factor_x > SUPPORT_REGION_MIN_X) && (factor_x < SUPPORT_REGION_MAX_X) && (-factor_y > SUPPORT_REGION_MIN_Y) && (-factor_y < SUPPORT_REGION_MAX_Y);
 
     }
 }
