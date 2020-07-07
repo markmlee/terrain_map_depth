@@ -50,15 +50,15 @@ target_link_libraries(test_footstep ${catkin_LIBRARIES})
 add_executable(test_footstep_vision src/test_footstep_vision.cpp src/lanros2podo.cpp src/lanpodo2ros.cpp)
 target_link_libraries(test_footstep_vision ${catkin_LIBRARIES})
 
-add_executable(client_depth src/client_depth.cpp src/lanros2podo.cpp src/lanpodo2ros.cpp)
-target_link_libraries(client_depth ${catkin_LIBRARIES})
-
 
 add_executable(com_estimate src/com_estimate.cpp src/lanros2podo.cpp src/lanpodo2ros.cpp)
 target_link_libraries(com_estimate ${catkin_LIBRARIES})
 
 add_executable(detect_peak src/detect_peak.cpp src/lanros2podo.cpp src/lanpodo2ros.cpp)
 target_link_libraries(detect_peak ${catkin_LIBRARIES})
+
+add_executable(client src/client_depth.cpp)
+target_link_libraries(client ${catkin_LIBRARIES})
 
 
 catkin_package(

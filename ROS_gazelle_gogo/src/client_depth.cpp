@@ -48,7 +48,7 @@
 #define RIGHT           -1
 #define TOTALFOOTSTEP   4
 
-
+#define START_FOOT RIGHT
 
 //check Done
 ros::Subscriber result_subscriber;
@@ -59,6 +59,7 @@ ros::Subscriber com_pose_subscriber;
 bool first_step = true;
 bool updated_camera_data = true; 
 bool updated_footstep_data = false;
+bool update_current_pose_flag = false;
 
 int cur_phase = 0;
 int hz_counter = 0;
@@ -85,6 +86,7 @@ geometry_msgs::Pose previous_goal_footstep;
 geometry_msgs::Pose current_footstep_world;
 //vector to maintain com
 geometry_msgs::Pose 	 current_com_pose;
+geometry_msgs::Pose 	 atResult_com_pose;
 
 //ros::Publisher 		marker_publisher_com; 
 
@@ -119,11 +121,14 @@ geometry_msgs::Pose update_pose(float x, float y, float qz, float qw)
 bool first_result = true;
 
 //update flag from /Result topic
+
 void goal_result_callback(const gogo_gazelle::MotionActionResultConstPtr& result)
   {
-    ROS_INFO("Result Callback@@@ robot_com X: %f, Y: %f\n", current_com_pose.position.x, current_com_pose.position.y);
-    
+    //ROS_INFO("Result Callback@@@ robot_com X: %f, Y: %f\n", current_com_pose.position.x, current_com_pose.position.y);
+    //ROS_ERROR("received result now. store COM");
+    update_current_pose_flag = true;
   }
+  
   
 
 
@@ -136,7 +141,7 @@ void goal_result_callback(const gogo_gazelle::MotionActionResultConstPtr& result
 	 footsteps_stamped_goal.steps.clear();
 	 
 	//covert local msg to global com  ====================================
-	ROS_INFO("robot_com X: %f, Y: %f\n", current_com_pose.position.x, current_com_pose.position.y);
+	//ROS_INFO("robot_com X: %f, Y: %f\n", atResult_com_pose.position.x, atResult_com_pose.position.y);
 
 	for(unsigned int i = 0; i < footsteps_stamped->steps.size(); i++) {
 		hubo_planner::Footstep footstep_msg;
@@ -158,8 +163,8 @@ void goal_result_callback(const gogo_gazelle::MotionActionResultConstPtr& result
 		
 		//store in goal  ====================================
 		footstep_msg.is_right = footsteps_stamped->steps[i].is_right;
-        footstep_msg.pose.position.x = footsteps_stamped->steps[i].pose.position.x + current_com_pose.position.x; //local footstep + current com
-        footstep_msg.pose.position.y = footsteps_stamped->steps[i].pose.position.y + current_com_pose.position.y;
+        footstep_msg.pose.position.x = footsteps_stamped->steps[i].pose.position.x; 
+        footstep_msg.pose.position.y = footsteps_stamped->steps[i].pose.position.y;
         //footstep_msg.pose.position.y = footsteps_stamped->steps[i].pose.position.y + 0; //when testing non-moving part
         footstep_msg.pose.position.z = 0.0;
         
@@ -175,14 +180,14 @@ void goal_result_callback(const gogo_gazelle::MotionActionResultConstPtr& result
 		if(i == footsteps_stamped->steps.size()-1)
 		{
 			footstep_msg.is_right = !(footsteps_stamped->steps[i].is_right);
-			footstep_msg.pose.position.x = footsteps_stamped->steps[i].pose.position.x + current_com_pose.position.x; //local footstep + current com;
-			//footstep_msg.pose.position.y = (-1)*(footsteps_stamped->steps[i].pose.position.y + current_com_pose.position.y);
+			footstep_msg.pose.position.x = footsteps_stamped->steps[i].pose.position.x; 
+			
 			//add offset for walk ready
 			float foot_distance_offset = 0;
-			if(footsteps_stamped->steps[i].pose.position.y > 0) foot_distance_offset = -0.22; //left foot end -> right foot offset
-			else foot_distance_offset = +0.22; //right foot end -> left foot offset
+			if(footsteps_stamped->steps[i].is_right) foot_distance_offset = +0.22; //right foot end -> left foot offset 
+			else foot_distance_offset = -0.22; //left foot end -> right foot offset
 			
-			footstep_msg.pose.position.y = footsteps_stamped->steps[i].pose.position.y + current_com_pose.position.y + foot_distance_offset;
+			footstep_msg.pose.position.y = footsteps_stamped->steps[i].pose.position.y + foot_distance_offset;
 			
 			footstep_msg.pose.position.z = 0.0;
 			footstep_msg.pose.orientation.x = footsteps_stamped->steps[i].pose.orientation.x;
@@ -230,33 +235,51 @@ int main(int argc, char *argv[])
 	
 	startTime = ros::Time::now();
 	bool first_step_flag = true;
+	bool error_flag = false;
 	
 	tf::TransformListener listener(ros::Duration(10)); //cache time
 	tf::StampedTransform transform_robot_com;				
 	ros::Rate loop_rate(100);
 	
+	current_com_pose.position.x = 0;
+	current_com_pose.position.y = 0;
+	atResult_com_pose.position.x = 0;
+	atResult_com_pose.position.y = 0;
+	
 
 //=========================================================================//
 	while (ros::ok())
 	{
-		//look up TF 
-		try{
-			listener.waitForTransform("/world", "/robot_com" , ros::Time(0), ros::Duration(0.02));
-			listener.lookupTransform("/world",  "/robot_com", ros::Time(0), transform_robot_com);
-			current_com_pose.position.x = transform_robot_com.getOrigin().x();
-			current_com_pose.position.y = transform_robot_com.getOrigin().y();
-			//current_com_pose.position.y = 0;
-			current_com_pose.position.z = transform_robot_com.getOrigin().z();
-			current_com_pose.orientation.x = transform_robot_com.getRotation().x();
-			current_com_pose.orientation.y = transform_robot_com.getRotation().y();
-			current_com_pose.orientation.z = transform_robot_com.getRotation().z();
-			current_com_pose.orientation.w = transform_robot_com.getRotation().w();
-		}
-		catch (tf::TransformException ex)
-		{
-			ROS_ERROR("ERRORLOG: %s",ex.what());
-			ros::Duration(0.005).sleep();
-		}
+		
+			//look up TF 
+			try{
+				listener.waitForTransform("/world", "/robot_com" , ros::Time(0), ros::Duration(0.005));
+				listener.lookupTransform("/world",  "/robot_com", ros::Time(0), transform_robot_com);
+				current_com_pose.position.x = transform_robot_com.getOrigin().x();
+				current_com_pose.position.y = transform_robot_com.getOrigin().y();
+				//current_com_pose.position.y = 0;
+				current_com_pose.position.z = transform_robot_com.getOrigin().z();
+				current_com_pose.orientation.x = transform_robot_com.getRotation().x();
+				current_com_pose.orientation.y = transform_robot_com.getRotation().y();
+				current_com_pose.orientation.z = transform_robot_com.getRotation().z();
+				current_com_pose.orientation.w = transform_robot_com.getRotation().w();
+				//ROS_INFO("Result Callback@@@ robot_com X: %f, Y: %f\n", current_com_pose.position.x, current_com_pose.position.y);
+				
+				if(update_current_pose_flag)
+				{
+					atResult_com_pose.position.x = current_com_pose.position.x;
+					atResult_com_pose.position.y = current_com_pose.position.y;
+					ROS_INFO("storing robot_com X: %f, Y: %f\n", atResult_com_pose.position.x, atResult_com_pose.position.y);
+					update_current_pose_flag = false;
+				}
+				
+			}
+			catch (tf::TransformException ex)
+			{
+				//ROS_ERROR("ERRORLOG: %s",ex.what());
+				ros::Duration(0.005).sleep();
+			}
+			
 		
 		
 		//FSM
@@ -319,7 +342,7 @@ int main(int argc, char *argv[])
 			{
 				ROS_INFO("========state 2: Send Footstep Goal========");
 				//ending condition
-				if(cur_phase > 3)
+				if(cur_phase > 4) //N+1 steps
 				{ 
 					stateMachine_counter = 3;
 					break; //done 
@@ -346,11 +369,17 @@ int main(int argc, char *argv[])
 					footsteps_stamped_goal.steps.erase(footsteps_stamped_goal.steps.begin());
 					//ROS_INFO("footstep_goal size before goal-1: %lu\n", footsteps_stamped_goal.steps.size()); 
 					
-					for(int i = 0; i < footsteps_stamped_goal.steps.size(); i ++){
+					if(cur_phase == 1)
+					{
+						for(int i = 0; i < footsteps_stamped_goal.steps.size(); i ++){
 						//ROS_INFO("reducing x before: %f\n", footsteps_stamped_goal.steps[i].pose.position.x);
-						footsteps_stamped_goal.steps[i].pose.position.x = footsteps_stamped_goal.steps[i].pose.position.x + 0.07;
+						footsteps_stamped_goal.steps[i].pose.position.x = footsteps_stamped_goal.steps[i].pose.position.x + 0.03; //offset the 1st step
 						//ROS_INFO("reducing x after: %f\n", footsteps_stamped_goal.steps[i].pose.position.x);
+						}
+						
 					}
+					
+					
 				}
 				
 
@@ -362,45 +391,59 @@ int main(int argc, char *argv[])
 					
 					
 					//update values
-					walking_goal.des_footsteps[5*i + 0] = footsteps_stamped_goal.steps[i].pose.position.x;
-					walking_goal.des_footsteps[5*i + 1] = footsteps_stamped_goal.steps[i].pose.position.y;
+					walking_goal.des_footsteps[5*i + 0] = footsteps_stamped_goal.steps[i].pose.position.x + atResult_com_pose.position.x;
+					walking_goal.des_footsteps[5*i + 1] = footsteps_stamped_goal.steps[i].pose.position.y + atResult_com_pose.position.y;
 					//walking_goal.des_footsteps[5*i + 1] = footsteps_stamped_goal.steps[i].pose.position.z;
 					walking_goal.des_footsteps[5*i + 2] = 0; //yaw_goal;
 					walking_goal.des_footsteps[5*i + 3] = i + cur_phase;
 					
-					if((cur_phase+i)%2 == 0) walking_goal.des_footsteps[5*i + 4] = -1;
-					else walking_goal.des_footsteps[5*i + 4] = 1;
+					if((cur_phase+i)%2 == 0) walking_goal.des_footsteps[5*i + 4] = RIGHT;
+					else walking_goal.des_footsteps[5*i + 4] = LEFT;
 					
+					//check valid data
+					//check y values according to L/R (cur phase)
+					if(START_FOOT == RIGHT){
+						if( ( walking_goal.des_footsteps[5*i + 4] == RIGHT ) &&  (walking_goal.des_footsteps[5*i + 1]  > 0) ){ //even footsteps && y value is positive
+							//ROS_ERROR("dangerous footstep values! footstep i: %f, X: %f, Y: %f\n" , walking_goal.des_footsteps[5*i + 3], walking_goal.des_footsteps[5*i + 0] ,walking_goal.des_footsteps[5*i + 1]);//y value should be always be negative. if Positive, STOP
+							error_flag = true; 
+						}
+						
+						else if ( (walking_goal.des_footsteps[5*i + 4] == LEFT ) && (walking_goal.des_footsteps[5*i + 1]  < 0) ){ //odd footsteps && y value is negative 
+							//ROS_ERROR("dangerous footstep values! footstep i: %f, X: %f, Y: %f\n" , walking_goal.des_footsteps[5*i + 3], walking_goal.des_footsteps[5*i + 0] ,walking_goal.des_footsteps[5*i + 1]);//y value should be always be negative. if Positive, STOP
+							error_flag = true; 
+							
+						}
+					}
 					
-					/*
-					 * walking_goal.des_footsteps[5*i + 4] = footsteps_stamped_goal.steps[i].is_right; 
-					if (walking_goal.des_footsteps[5*i + 4] == 0) walking_goal.des_footsteps[5*i + 4] = 1;
-					else walking_goal.des_footsteps[5*i + 4] = -1;
-					* change when SGVR planning updates L/R state correctly per replan
-					* */
-					
-					
-
-                    
 					ROS_WARN("GoalX: %f, GoalY: %f, GoalR: %f, Phase: %f, L/R: %f\n",walking_goal.des_footsteps[5*i + 0], walking_goal.des_footsteps[5*i + 1], walking_goal.des_footsteps[5*i + 2], walking_goal.des_footsteps[5*i + 3], walking_goal.des_footsteps[5*i + 4]);
 					
 				}
 				
-				walking_goal.step_num  = TOTALFOOTSTEP; //update by count?
+				//error detected
+				if(error_flag) {
+					//exit to STOP state
+					ROS_ERROR("dangerous footstep values!");
+					stateMachine_counter = 3; 
+				}
 				
-				//check valid data
+				//no error
+				else{
+					
+					//send goal
+					walking_goal.step_num  = TOTALFOOTSTEP; //update by count?
+					ac_footprint.sendGoal(walking_goal);
+					cur_phase++; 
 				
-				ac_footprint.sendGoal(walking_goal);
-				cur_phase++; 
+					//return to IDLE state
+					stateMachine_counter = 0; 
+					updated_footstep_data = false;
+				}
 				
+
 				//empty vector
 				footsteps_stamped_goal.steps.erase(footsteps_stamped_goal.steps.begin());
 				//ROS_INFO("footstep_goal size now: %lu\n", footsteps_stamped_goal.steps.size());  
-				
-				//return to IDLE state
-				stateMachine_counter = 0; 
-				updated_footstep_data = false;
-				
+			
 				break;
 			}
 			
