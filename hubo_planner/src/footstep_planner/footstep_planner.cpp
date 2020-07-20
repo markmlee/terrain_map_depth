@@ -67,7 +67,12 @@ bool FootstepPlanner::planning(const Configuration& _goal_conf)
         footstep_stage = support_stage;
 
         if(found)
-            break;
+        {
+          ROS_INFO("succesful plan after trial :%i", i);
+          break;
+          ROS_INFO("THIS SHOULDN'T PRINT");
+        }
+
     }
 
     // Make path

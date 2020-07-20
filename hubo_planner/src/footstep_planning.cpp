@@ -42,15 +42,16 @@ protected:
     const double        ROBOT_HEIGHT = 0.8;
 
     //This is for narrowpath
-   /*
-    const double        FOOTSTEP_WIDTH  = 0.22;  // [m]
-    const double        FOOTSTEP_HEIGHT = 0.15;  // [m]
-*/
+
+    const double        FOOTSTEP_WIDTH  = 0.25;  // [m]
+    const double        FOOTSTEP_HEIGHT = 0.18;  // [m]
+
 
 // This is for stepping stone
-    const double        FOOTSTEP_WIDTH  = 0.24;  // [m]
-    const double        FOOTSTEP_HEIGHT = 0.22;  // [m]
-
+/*
+    const double        FOOTSTEP_WIDTH  = 0.26;  // [m] X
+    const double        FOOTSTEP_HEIGHT = 0.25;  // [m] Y //0.26 was great
+*/
 
 
 
@@ -253,7 +254,7 @@ begin_flag = true;
             return false;
         }
         ros::Time end = ros::Time::now();
-        std::cout << "Found the goal: " << (end - start).toSec() << " [sec]" << std::endl;
+       //std::cout << "Found the goal: " << (end - start).toSec() << " [sec]" << std::endl;
         std::cout << "Number of footsteps: " << planner.get_footsteps().size() << std::endl;
 
 #ifdef VIS_FOOTSTEPS
@@ -274,6 +275,10 @@ begin_flag = true;
 
       if(begin_flag){
 
+        int goal_search_count = 0;
+
+        ros::Time start = ros::Time::now();
+
         for(float goal_search_radius = GOAL_SEARCH_MAX_RADIUS; goal_search_radius > GOAL_SEARCH_MIN_RADIUS ; goal_search_radius-=GOAL_SEARCH_STEP){
             float y    = 0.0;     // to search left,right direction
             float sign = 1.0;     // to calculate y
@@ -285,14 +290,23 @@ begin_flag = true;
                 delete start_pose;
                 delete goal_pose;
 
+                goal_search_count++;
+
                 update_tf();
                 start_pose = Configuration(0, 0, M_PI).get_transformed_Configuration(tf_transform_baselink2map);           //  fixed_frame : map
                 goal_pose = Configuration(-goal_search_radius, y, M_PI - y/goal_search_radius).get_transformed_Configuration(tf_transform_baselink2map);  // fixed_frame : map
 //                std::cout << "Start pose: " << start_pose->x() << " / " << start_pose->y() << " / " << start_pose->r() << std::endl;
 //                std::cout << "Goal pose: " << goal_pose->x() << " / " << goal_pose->y() << " / " << goal_pose->r() << std::endl;
 
+
                 if(planning()) {
                     std::cout << "Goal pose: " << goal_pose->x() << " / " << goal_pose->y() << " / " << goal_pose->r() << std::endl;
+                    ros::Time end = ros::Time::now();
+                    //std::cout << "" << (end - start).toSec() << " [sec]" << std::endl;
+                    ROS_WARN("total plan time: %f [sec]", (end - start).toSec());
+                    std::cout << "Goal search: " << goal_search_count << " [iteration]" << std::endl;
+                    std::cout<<"---------------------------------------------------------"<<std::endl;
+
 
 #ifdef VIS_START_POSE
                     RobotModel start_robot_model(quadmap::point2d(start_pose->x(), start_pose->y()), robot_size, start_pose->r());
@@ -314,6 +328,7 @@ begin_flag = true;
                     begin_flag = false;
                     return true;
                 }
+
 
             }
         }
@@ -494,16 +509,16 @@ int main(int argc, char** argv)
 
     FootstepPlanningServer footstep_planning_server;
      ros::Rate loop_rate(100);
-     ROS_ERROR("new version");
+     ROS_ERROR("new version w 26/25");
 
     try{
         while(true) {
             // Begin the footstep planning
             if(footstep_planning_server.isValid_flag()){
-                ros::Time start = ros::Time::now();
+                //ros::Time start = ros::Time::now();
                 footstep_planning_server.planning_with_goal_search();
                 footstep_planning_server.reset_flag();
-                ros::Time end = ros::Time::now();
+                //ros::Time end = ros::Time::now();
 
                 //std::cout<<"---------------------------------------------------------"<<std::endl;
 //                std::cout << "" << (end - start).toSec() << " [sec]" << std::endl;

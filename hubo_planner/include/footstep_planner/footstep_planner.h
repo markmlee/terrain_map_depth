@@ -15,34 +15,34 @@ class FootstepPlanner {
 public:
     // OPTIONS =========================================================================================================
   //THIS IS FOR NARROW PATH
-  /*
+
   const double D = 0.09; // Displacement between center of body and center of foot
 //    const double SUPPORT_REGION_WIDTH  = 0.09;   // maximum range of next footstep in forward direction [m]
     const double SUPPORT_REGION_HEIGHT = 0.30;   // maximum range of next footstep in side direction [m]
     const double SUPPORT_REGION_BIAS   = 0.02;  //
 
-    const double SUPPORT_REGION_MIN_X  = 0.22;  // 0.27m = FOOTSET_WIDTH(=0.22m) + SUPPORT_REGION_BIAS(=0.05m)
+    const double SUPPORT_REGION_MIN_X  = 0.25;  // 0.27m = FOOTSET_WIDTH(=0.22m) + SUPPORT_REGION_BIAS(=0.05m)
     const double SUPPORT_REGION_MAX_X  = 0.30;  // 0.62m = SUPPORT_REGION_MIN_X(=0.27m) + SUPPORT_REGION_WIDTH(=0.35m)
-    const double SUPPORT_REGION_MIN_Y  = 0.05;  // 0.05m = SUPPORT_REGION_BIAS(=0.05m)
+    const double SUPPORT_REGION_MIN_Y  = 0.10;  // 0.05m = SUPPORT_REGION_BIAS(=0.05m)
     const double SUPPORT_REGION_MAX_Y  = 0.30;  // 0.30m = SUPPORT_REGION_MAX_X(=0.05m) + SUPPORT_REGION_HEIGHT(=0.30m)
-*/
-    //THIS IS FOR STEPPING STONE
 
+    //THIS IS FOR STEPPING STONE
+/*
     const double D = 0.09; // Displacement between center of body and center of foot
 //    const double SUPPORT_REGION_WIDTH  = 0.09;   // maximum range of next footstep in forward direction [m]
     const double SUPPORT_REGION_HEIGHT = 0.30;   // maximum range of next footstep in side direction [m]
     const double SUPPORT_REGION_BIAS   = 0.05;  //
 
     const double SUPPORT_REGION_MIN_X  = 0.15;  // 0.27m = FOOTSET_WIDTH(=0.22m) + SUPPORT_REGION_BIAS(=0.05m)
-    const double SUPPORT_REGION_MAX_X  = 0.35;  // 0.62m = SUPPORT_REGION_MIN_X(=0.27m) + SUPPORT_REGION_WIDTH(=0.35m)
+    const double SUPPORT_REGION_MAX_X  = 0.32;  // 0.62m = SUPPORT_REGION_MIN_X(=0.27m) + SUPPORT_REGION_WIDTH(=0.35m)
     const double SUPPORT_REGION_MIN_Y  = 0.20;  // 0.05m = SUPPORT_REGION_BIAS(=0.05m)
     const double SUPPORT_REGION_MAX_Y  = 0.35;  // 0.30m = SUPPORT_REGION_MAX_X(=0.05m) + SUPPORT_REGION_HEIGHT(=0.30m)
-
+*/
 
 #ifdef USE_ROTATION
     const double SUPPORT_REGION_ROTATION = 0.174533; // maximum range of next footstep in rotation [rad]
 #endif
-    const unsigned int NUMBER_OF_TRIALS = 5000;
+    const unsigned int NUMBER_OF_TRIALS = 1000; //narrowpath //stepping 5000
 
     enum {
         FOOT_LEFT  = 0,
