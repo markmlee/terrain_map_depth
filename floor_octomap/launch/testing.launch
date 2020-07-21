@@ -1,0 +1,28 @@
+<launch>
+
+    <!-- RUN FROM BAG FILE -->
+    <arg name="bagfile" default="false"/>
+    <group if="$(eval bagfile != false)">
+        <node pkg="rosbag" type="play" name="rosbag_player" output="screen" args="--clock -d 1 $(arg bagfile)"/>
+        <param name="/use_sim_time" value="True"/>
+    </group>
+
+    
+    <!-- FILTER DEPTH IMAGE ON DEPTH -->
+    <!-- <node pkg="floor_octomap" type="tf_alias_node.py" name="tf_alias" output="screen" 
+            args="/base_link_estimate /camera_depth_optical_frame_estimate /base_link /camera_depth_optical_frame"/> -->
+
+    <node pkg="floor_octomap" type="depth_image_filter_node.py" name="filter_depth_service" output="screen" 
+            args="/camera/depth/image_rect_raw /filtered_depth_image /camera_depth_optical_frame"/>
+
+
+    <!-- CONVERT DEPTH IMAGE TO POINTCLOUD -->
+    <node pkg="nodelet" type="nodelet" name="standalone_nodelet"  args="manager"/>
+
+    <node pkg="nodelet" type="nodelet" name="cloudify"
+            args="load depth_image_proc/point_cloud_xyz standalone_nodelet">
+        <remap from="points" to="depth_filtered_cloud"/>
+        <remap from="image_rect" to="filtered_depth_image"/>
+        <remap from="camera_info" to="camera/depth/camera_info"/>
+    </node>
+</launch>

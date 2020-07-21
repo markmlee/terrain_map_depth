@@ -1,0 +1,50 @@
+#! /usr/bin/env python
+
+import rospy
+from floor_octomap.msg import BoundingBox, BoundingBoxArray
+
+from boundary_detection import BoundaryDetection
+
+import message_filters
+from sensor_msgs.msg import Image, CameraInfo
+
+import rospy
+
+class Node:
+    def __init__(self):
+        rospy.init_node("bounding_box_detectors")
+
+        # Add processor
+        self.boundary_detection = BoundaryDetection()
+        
+        # Handle subscribing
+        image_sub = message_filters.Subscriber("image", Image)
+        info_sub = message_filters.Subscriber("camera_info", CameraInfo)
+        self.ts = message_filters.TimeSynchronizer([image_sub, info_sub], 10)
+        self.ts.registerCallback(self.callback)
+
+        # Handle publishing
+        self.publisher = rospy.Publisher("boundary_boxes", BoundingBoxArray, queue_size=10)
+
+        rospy.spin()
+
+    def callback(image, camera_info):
+        # http://wiki.ros.org/tf/Tutorials/Writing%20a%20tf%20listener%20%28Python%29
+        ## Look up transform world --> baselink_estimage
+        ## Look up transform baselink --> 
+
+        self.boundary_detection(process(image, camera_info, world_camera_frame))
+        # Create message
+        box_list = []
+        for bounding_boxes in self.boundary_detection.current_boundaries:
+            tmp_msg = BoundingBox()
+            box_list.append(tmp_msg)
+        out_msg = BoundingBoxArray()
+        out_msg.header = image.header
+        out_msg.boxes = box_list
+
+        self.publisher.publish(out_msg)
+
+if __name__ == '__main__':
+    node = Node()
+    

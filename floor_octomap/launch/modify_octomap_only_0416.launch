@@ -1,0 +1,26 @@
+<launch>
+    <!-- Launch Octomap Server -->
+    <include file="$(find floor_octomap)/launch/octomap.launch">
+        <arg name="resolution" value="0.025"/>
+        <arg name="cloud_mapping" value="/camera/depth_registered/points"/> <!--topic name of pointcloud to make octomap from-->
+    </include>
+
+    <!-- Run modify_octomap_0416 -->
+    <node pkg="floor_octomap" type="modify_octomap_0416_node" name="modify_octomap_0416" output="screen" args="/camera_link"> <!--args: frame name for pose published from SLAM-->
+        <rosparam command="load" file="$(find floor_octomap)/config/flatten_0416.yaml" />
+    </node>
+
+    <!-- Run Flattening Service -->
+    <node pkg="floor_octomap" type="flatten_octomap_service_0416.py" name="flatten_octomap_service_0416" output="screen"/>
+
+    <!-- Play Bagfile -->
+    <arg name="bagfile" default="false"/>
+    <group if="$(eval bagfile != false)">
+        <param name="/use_sim_time" value="True"/>
+        <node pkg="rosbag" type="play" name="rosbag_player" output="screen" args="-q --clock -d 5 $(arg bagfile)"/>
+    </group>
+
+    <!-- RVIZ -->
+    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find floor_octomap)/rviz/only_rviz_config.rviz" />
+    
+</launch>

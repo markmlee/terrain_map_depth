@@ -1,0 +1,19 @@
+<launch>
+  <!-- Play Bagfile -->
+  <arg name="bagfile" default="false" />
+  <group if="$(eval bagfile != false)">
+    <param name="/use_sim_time" value="True" />
+    <node pkg="rosbag" type="play" name="rosbag_player" output="screen" args="-q --clock -d 5 $(arg bagfile)" />
+  </group>
+  <!-- Run flatten_pointcloud -->
+  <!-- <node pkg="floor_octomap" type="flatten_pointcloud_node" name="flatten_pointcloud_node" output="screen">
+       <rosparam command="load" file="$(find floor_octomap)/config/flatten_pointcloud.yaml" />
+       </node> -->
+  <!-- Run flatten_pointcloud -->
+  <node pkg="floor_octomap" type="flatten_pointcloud_node_0527" name="flatten_pointcloud_node_0527" output="screen">
+    <rosparam command="load" file="$(find floor_octomap)/config/flatten_pointcloud.yaml" />
+  </node>
+  <!-- RVIZ
+  <node pkg="rviz" type="rviz" name="rviz" args="-d $(find floor_octomap)/rviz/pointcloud_rviz_config.rviz" />
+   -->
+</launch>

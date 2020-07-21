@@ -1,0 +1,29 @@
+<launch>
+  <arg name="cloud_mapping" default="/point"/>
+  <arg name="resolution" default="0.2"/>
+
+  <node pkg="octomap_server" type="octomap_server_node" name="octomap_server">
+    <!-- resolution in meters per pixel -->
+    <param name="resolution" value="$(arg resolution)" />
+    <!-- name of the fixed frame, needs to be "/map" for SLAM -->
+    <param name="frame_id" type="string" value="/world" />
+    <param name="sensor_model/max_range" value="10"/>
+    <!-- <param name="latch" value="true" /> -->
+    <!-- max/min height for occupancy map, should be in meters -->
+    <param name="pointcloud_max_x" value="100" />
+    <param name="pointcloud_min_x" value="-100" />
+    <param name="pointcloud_max_y" value="100" />
+    <param name="pointcloud_min_y" value="-100" />
+    <param name="pointcloud_max_z" value="100" />
+    <param name="pointcloud_min_z" value="-100" />
+
+    <!-- <param name="occupancy_min_z" value="0.05" /> -->
+
+    <!-- This gives an error -->
+    <!-- <param name="filter_ground" value="true" /> --> 
+
+    <!-- topic from where pointcloud2 messages are subscribed -->
+    <remap from="/cloud_in" to="$(arg cloud_mapping)" />
+    
+  </node>
+</launch>

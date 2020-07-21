@@ -1,0 +1,85 @@
+<!-- TF: Static TF Publisher -->
+<!-- static_transform_publisher x y z qx qy qz qw frame_id child_frame_id  period_in_ms -->
+<!-- rosrun tf static_transform_publisher 1.0 0 1.0 0 0 0 1 world base_link 100 -->
+
+
+<!-- TF: Initial Camera Angle -->
+<!-- 0 Degree -->
+<node pkg="tf" type="static_transform_publisher" name="baselink_to_camera_tf_pub" args=" 0 0 0.5 0 0 0 1 base_link camera_link 100" />
+<!-- 45 Degree -->
+<node pkg="tf" type="static_transform_publisher" name="baselink_to_camera_tf_pub" args=" 0 0 0.5 0 0.383 0 0.924 base_link camera_link 100" />
+<!-- 30 Degree "hubo_v1" -->
+<node pkg="tf" type="static_transform_publisher" name="baselink_to_camera_tf_pub" args=" 0 0 0 0 0.321 0 0.947 base_link camera_start 100" />
+<!-- 90 Degree -->
+<node pkg="tf" type="static_transform_publisher" name="baselink_to_camera_tf_pub" args=" 0 0 0.5 0 0.707 0 0.707 base_link camera_link 100" />
+<!-- 88.5 Degree "test_v3.bag" -->
+<node pkg="tf" type="static_transform_publisher" name="baselink_to_camera_tf_pub" args=" 0 0 0.5 0 0.698 0 0.716 base_link camera_link 100" />
+<!-- 53.6 Degree "test_v4.bag" -->
+<node pkg="tf" type="static_transform_publisher" name="baselink_to_camera_tf_pub" args=" 0 0 0.65 0 0.451 0 0.893 base_link camera_link 100" />
+<!-- 40 Degree "test_v5.bag" -->
+<node pkg="tf" type="static_transform_publisher" name="baselink_to_camera_tf_pub" args=" 0 0 0.5 0 0.423 0 0.906 base_link camera_link 100" />
+
+
+<!-- TF: Initial Camera Position -->
+<node pkg="tf" type="static_transform_publisher" name="world_to_baselink_tf_pub" args="0.5 0 1.1 0 0 0 1 world base_link 100" />
+
+
+<!-- Run ORB SLAM -->
+<node pkg="singlecamera_orbslam2" type="rgbd_slam_node" name="rgbd_slam" output="screen"
+    args="$(find singlecamera_orbslam2)/Vocabulary/ORBvoc.txt $(find singlecamera_orbslam2)/Settings/D435.yaml camera_start camera_link"/>
+
+
+<!-- Run DVO SLAM -->
+<node pkg="dvo_ros" type="camera_tracker" name="dvo_slam_node" output="screen">
+    <param name="run_dense_tracking" value="True"/>
+    <param name="use_initial_estimate" value="False"/>
+    <param name="use_weighting" value="True"/>
+</node>
+
+
+<!-- Launch Octomap Server -->
+<include file="$(find floor_octomap)/launch/octomap.launch">
+    <arg name="resolution" value="0.02"/>
+    <arg name="cloud_mapping" value="/depth_filtered_cloud"/>  <!--topic name of pointcloud to make octomap from-->
+</include>
+
+
+<!-- Run modify_octomap -->
+<node pkg="floor_octomap" type="modify_octomap_node" name="modify_octomap" output="screen" args="/camera_link">  <!--args: frame name for pose published from SLAM-->
+    <rosparam command="load" file="$(find floor_octomap)/config/flatten.yaml" />
+</node>
+
+
+<!-- Run Flattening Service -->
+<node pkg="floor_octomap" type="flatten_octomap_service.py" name="flatten_octomap_service" output="screen"/>
+
+
+<!-- Voxel Filter Pointcloud -->
+<node pkg="floor_octomap" type="cloud_voxel_filter_node" name="cloud_voxel_filter" output="screen"
+        args="/depth_filtered_cloud /voxel_filtered_cloud 2"/> <!--input pointcloud topic, output pointcloud topic, voxel threshold-->
+
+<!-- Copy TF -->
+<node pkg="floor_octomap" type="tf_alias_node.py" name="tf_alias" output="screen" 
+        args="/base_link_estimate /camera_depth_optical_frame_estimate /base_link /camera_depth_optical_frame"/> <!--out1, out2, in1, in2 : Copy TF of in1->in2 to out1->out2-->
+
+<!-- Depth Image Filter -->
+<node pkg="floor_octomap" type="depth_image_filter_node.py" name="filter_depth_service" output="screen" 
+        args="/camera/depth/image_rect_raw /filtered_depth_image /camera_depth_optical_frame_estimate"/> <!--input depth image, output depth image, output frame name-->
+
+
+<!-- Depth Image to Pointcloud -->
+<node pkg="nodelet" type="nodelet" name="standalone_nodelet"  args="manager"/>
+
+<node pkg="nodelet" type="nodelet" name="cloudify"
+        args="load depth_image_proc/point_cloud_xyz standalone_nodelet">
+    <remap from="points" to="depth_filtered_cloud"/> <!--output pointcloud-->
+    <remap from="image_rect" to="filtered_depth_image"/> <!--input depth image-->
+    <remap from="camera_info" to="camera/depth/camera_info"/>
+</node>
+
+
+<!-- Throttle a Topic -->
+<node pkg="topic_tools" type="throttle" name="pointcloud_throttle" args="messages depth_filtered_cloud 5.0"/>
+
+<!-- Reset Octomap -->
+<!-- rosservice call /octomap_server/reset -->
