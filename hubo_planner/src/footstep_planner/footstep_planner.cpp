@@ -1,5 +1,87 @@
 #include <footstep_planner/footstep_planner.h>
 
+/**
+ * Footstep planning with given target number of footsteps
+ *
+ * @param _start_conf
+ * @param target_num_footsteps
+ * @return
+ */
+bool FootstepPlanner::planning(const Configuration& _start_conf, const int& target_num_footsteps)
+{
+    // Initialize the start configurations of footsteps
+    FootstepNode start_left_footsteps(false);
+    FootstepNode start_right_footsteps(true);
+
+    set_initial_footsteps_from_pose(_start_conf, start_left_footsteps, start_right_footsteps);
+    if(is_current_footstep_right)
+        current_footstep_configuration = start_right_footsteps.step_conf;
+    else
+        current_footstep_configuration = start_left_footsteps.step_conf;
+
+    FootstepNode* start_footstep = new FootstepNode(is_current_footstep_right, current_footstep_configuration);
+
+    // Initialize the footstep_nodes with start_footstep
+    std::vector<FootstepNode*> footstep_nodes;
+    footstep_nodes.push_back(start_footstep);
+
+    bool found = false;
+
+//    FootstepNode* pair_footstep = nullptr;
+
+    for(int i = 0; i < NUMBER_OF_TRIALS; i++) {
+        // 1. Make a random footstep
+        FootstepNode* next_footstep = make_new_sample(footstep_nodes);
+
+        // 2. Check the availability of the new footstep
+        if(!isAvailableFootStep(next_footstep)) {
+            delete next_footstep;
+            continue;
+        }
+
+        // 3. If the next footstep is target number of footsteps, stop the planning
+        if(next_footstep->cnt_footsteps == target_num_footsteps){
+//            pair_footstep = make_pair_sample(next_footstep);
+//            if(isAvailableFootStep(pair_footstep))
+              found = true;
+//            else
+//              delete pair_footstep;
+        }
+
+        // 4. Prepare the continuous planning
+        footstep_nodes.push_back(next_footstep);
+
+        if(found)
+        {
+//            footstep_nodes.push_back(pair_footstep);
+            ROS_INFO("successful plan after trial :%i", i);
+            break;
+        }
+    }
+
+    // Make path
+    footsteps.clear();
+    if(found) {
+        FootstepNode* current = footstep_nodes.back();   //The lastly saved footstep is goal footstep.
+        while(current != nullptr){
+            footsteps.push_back(current->step_conf);
+            current = current->parent;
+        }
+        footsteps.pop_back();
+        // std::cout << "Number of nodes: " << footstep_nodes[0].size() + footstep_nodes[1].size() << std::endl;
+        // std::cout << "Number of steps: " << footsteps.size() << std::endl;
+    }
+    else {
+        // std::cout << "Cannot find the path" << std::endl;
+    }
+
+    // Release memories
+    for(auto node : footstep_nodes)
+        delete node;
+
+    return found;
+}
+
 bool FootstepPlanner::planning(const Configuration& _start_conf, const Configuration& _goal_conf)
 {
     // Initialize the start configurations of footsteps
@@ -38,7 +120,7 @@ bool FootstepPlanner::planning(const Configuration& _goal_conf)
         return false;
     }
 
-    std::vector<FootstepNode*> footstep_nodes[2];
+    std::vector<FootstepNode*> footstep_nodes[2]; // TODO
     footstep_nodes[is_current_footstep_right ? FOOT_RIGHT : FOOT_LEFT].push_back(start_footstep);
 
     int footstep_stage = is_current_footstep_right ? FOOT_LEFT : FOOT_RIGHT;
@@ -116,7 +198,18 @@ void FootstepPlanner::set_initial_footsteps_from_pose(const Configuration& _conf
     _right_footstep.step_conf.y() = _configuration.y() - center_to_foot.y();
     _right_footstep.step_conf.r() = _configuration.r();
 }
+FootstepNode* FootstepPlanner::make_pair_sample(FootstepNode* _footstep_node){
+    Configuration pair_footstep_conf;
 
+    if(_footstep_node->isRight){
+        pair_footstep_conf = Configuration(_footstep_node->step_conf.x(), _footstep_node->step_conf.y() - (2*D + 0.05) , _footstep_node->step_conf.r());
+    }
+    else{
+        pair_footstep_conf = Configuration(_footstep_node->step_conf.x(), _footstep_node->step_conf.y() + (2*D + 0.05), _footstep_node->step_conf.r());
+    }
+
+    return new FootstepNode(!_footstep_node->isRight, pair_footstep_conf, _footstep_node);
+}
 FootstepNode* FootstepPlanner::make_new_sample(const std::vector<FootstepNode*>& _footstep_nodes)
 {
     // 1. Random selection of node index
@@ -137,7 +230,8 @@ FootstepNode* FootstepPlanner::make_new_sample(const std::vector<FootstepNode*>&
     axis[1] = quadmap::point2d(-(float)std::sin(rotation), (float)std::cos(rotation)) * height_distribution(generator);
     quadmap::point2d next_footstep_offset = parent->isRight ? axis[0] + axis[1] : axis[0] - axis[1];
 
-    auto next_footstep = new FootstepNode(!parent->isRight, parent->step_conf, parent);
+//    auto next_footstep = new FootstepNode(!parent->isRight, parent->step_conf, parent);
+    auto next_footstep = new FootstepNode(!parent->isRight, parent->step_conf, parent, parent->cnt_footsteps+1);
     next_footstep->step_conf.x() += next_footstep_offset.x();
     next_footstep->step_conf.y() += next_footstep_offset.y();
 #ifdef USE_ROTATION

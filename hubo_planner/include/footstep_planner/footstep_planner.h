@@ -9,7 +9,7 @@
 
 #include <random>
 
-//#define USE_ROTATION
+// #define USE_ROTATION
 
 class FootstepPlanner {
 public:
@@ -24,11 +24,13 @@ public:
     const double SUPPORT_REGION_MIN_X  = 0.25;  // 0.27m = FOOTSET_WIDTH(=0.22m) + SUPPORT_REGION_BIAS(=0.05m)
     const double SUPPORT_REGION_MAX_X  = 0.30;  // 0.62m = SUPPORT_REGION_MIN_X(=0.27m) + SUPPORT_REGION_WIDTH(=0.35m)
     const double SUPPORT_REGION_MIN_Y  = 0.10;  // 0.05m = SUPPORT_REGION_BIAS(=0.05m)
+    // const double SUPPORT_REGION_MAX_Y  = 0.30;  // 0.30m = SUPPORT_REGION_MAX_X(=0.05m) + SUPPORT_REGION_HEIGHT(=0.30m)
     const double SUPPORT_REGION_MAX_Y  = 0.30;  // 0.30m = SUPPORT_REGION_MAX_X(=0.05m) + SUPPORT_REGION_HEIGHT(=0.30m)
 
     //THIS IS FOR STEPPING STONE
 /*
     const double D = 0.09; // Displacement between center of body and center of foot
+    /*
 //    const double SUPPORT_REGION_WIDTH  = 0.09;   // maximum range of next footstep in forward direction [m]
     const double SUPPORT_REGION_HEIGHT = 0.30;   // maximum range of next footstep in side direction [m]
     const double SUPPORT_REGION_BIAS   = 0.05;  //
@@ -55,7 +57,10 @@ public:
     {
         footstep_size = quadmap::point2d((float)_footstep_width, (float)_footstep_height);
     }
-
+    /*
+     *
+     */
+    bool planning(const Configuration& _start_conf, const int& target_num_footsteps);
     /*
      *
      */
@@ -119,6 +124,9 @@ public:
     void set_current_footstep(bool is_right){
         is_current_footstep_right = is_right;
     }
+     bool get_current_footstep(){
+        return is_current_footstep_right;
+    }
 
 
 
@@ -135,6 +143,11 @@ protected:
      */
     void set_initial_footsteps_from_pose(const Configuration& _configuration, FootstepNode& _left_footstep, FootstepNode& _right_footstep);
 
+    /*
+     *
+     */
+
+    FootstepNode* make_pair_sample(FootstepNode* _footstep_node);
     /*
      *
      */

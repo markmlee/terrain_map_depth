@@ -43,8 +43,8 @@ protected:
 
     //This is for narrowpath
 
-    const double        FOOTSTEP_WIDTH  = 0.25;  // [m]
-    const double        FOOTSTEP_HEIGHT = 0.18;  // [m]
+    const double        FOOTSTEP_WIDTH  = 0.25;// 0.25;  // [m]
+    const double        FOOTSTEP_HEIGHT = 0.18;//0.18;  // [m]
 
 
 // This is for stepping stone
@@ -52,8 +52,6 @@ protected:
     const double        FOOTSTEP_WIDTH  = 0.26;  // [m] X
     const double        FOOTSTEP_HEIGHT = 0.25;  // [m] Y //0.26 was great
 */
-
-
 
     const double        GOAL_SEARCH_MAX_RADIUS = 1.2;
     const double        GOAL_SEARCH_MIN_RADIUS = 0.2;
@@ -100,6 +98,8 @@ public:
         environment_flag     = false;
         stepping_stones_flag = false;
 
+        target_num_footsteps = 7; //TODO : This value means that how many footsteps you want to obtain from planner.
+
 #ifdef VIS_START_POSE
         update_tf();
         Configuration* transformed_start_pose = start_pose->get_transformed_Configuration(tf_transform_baselink2map);  //transform
@@ -119,7 +119,7 @@ public:
      *
      */
     void begin_footstep_planning(const std_msgs::String::ConstPtr& _msg){
-begin_flag = true;
+        begin_flag = true;
     }
 
 
@@ -128,12 +128,20 @@ begin_flag = true;
     bool first_result_flag = true;
     void goal_result_callback(const gogo_gazelle::MotionActionResultConstPtr &result) {
 
+        // TODO : Requirement2
+        delete start_pose;
+        update_tf();
+        start_pose = Configuration(0, 0, M_PI).get_transformed_Configuration(tf_transform_baselink2map);           //  fixed_frame : map
+
 
         if (first_command_flag) {
             ROS_INFO("ignore first result");
             first_command_flag = false;
         }
         else {
+            ROS_INFO("Start Planning!");
+            ROS_INFO("Next Footstep : %s", (planner.get_current_footstep()) ? "left" : "right");
+            ROS_INFO("Target number of footstep : %d", target_num_footsteps);
             begin_flag = true;
         }
 //#ifdef VIS_FOOTSTEPS
@@ -216,11 +224,16 @@ begin_flag = true;
      */
     bool planning() {
 
-      if(stepping_stones == nullptr || start_pose == nullptr || goal_pose == nullptr)
+//      if(stepping_stones == nullptr || start_pose == nullptr || goal_pose == nullptr) TODO : original
+//            return false;
+      if(stepping_stones == nullptr || start_pose == nullptr)
             return false;
 
+
         ros::Time start = ros::Time::now();
-        bool found = planner.planning(*start_pose, *goal_pose);
+//        bool found = planner.planning(*start_pose, *goal_pose);   TODO: original
+        bool found = planner.planning(*start_pose, target_num_footsteps);
+
 
 #ifdef VIS_SUPPORT_REGION
         // start footstep
@@ -247,7 +260,6 @@ begin_flag = true;
 #endif
 
         if(!found) {
-
             //ros::Time end = ros::Time::now();
             //std::cout << "Cannot find the goal: " << (end - start).toSec() << " [sec]" << std::endl;
 
@@ -255,7 +267,7 @@ begin_flag = true;
         }
         ros::Time end = ros::Time::now();
        //std::cout << "Found the goal: " << (end - start).toSec() << " [sec]" << std::endl;
-        std::cout << "Number of footsteps: " << planner.get_footsteps().size() << std::endl;
+        ROS_INFO("Number of footsteps: %d", static_cast<int>(planner.get_footsteps().size()));
 
 #ifdef VIS_FOOTSTEPS
         visualization::footsteps_to_markerarray(planner.get_footsteps(), footstep_size, footstep_markerarray, VIS_FRAME_ID);
@@ -271,6 +283,7 @@ begin_flag = true;
     /*
      *
      */
+
     bool planning_with_goal_search() {
 
       if(begin_flag){
@@ -326,6 +339,7 @@ begin_flag = true;
                       footsteps_publisher.publish(footsteps_stamped);
                     }
                     begin_flag = false;
+
                     return true;
                 }
 
@@ -339,7 +353,59 @@ begin_flag = true;
         return false;
       }
     }
+    /*
+     *
+     */
+    bool planning_target_num_footsteps(){
 
+        if (begin_flag){
+            ros::Time start = ros::Time::now();
+
+//            TODO : remove this for requirement2
+            delete start_pose;
+            update_tf();
+            start_pose = Configuration(0, 0, M_PI).get_transformed_Configuration(tf_transform_baselink2map);           //  fixed_frame : map
+
+            if(planning()) {
+
+//                auto goal_step = planner.get_footsteps().front();
+//                delete goal_pose;
+//                if((planner.get_current_footstep()+target_num_footsteps) % 2 == 0)
+//                    goal_pose = Configuration(goal_step.x(), goal_step.y()+0.7, goal_step.r()+M_PI).get_transformed_Configuration(tf_transform_baselink2map);  // fixed_frame : map
+//                else
+//                    goal_pose = Configuration(goal_step.x(), goal_step.y(), goal_step.r()+M_PI).get_transformed_Configuration(tf_transform_baselink2map);  // fixed_frame : map
+
+                //std::cout << "Goal pose: " << goal_pose->x() << " / " << goal_pose->y() << " / " << goal_pose->r() << std::endl;
+                ros::Time end = ros::Time::now();
+                //std::cout << "" << (end - start).toSec() << " [sec]" << std::endl;
+                ROS_INFO("total plan time: %f [sec]", (end - start).toSec());
+                std::cout<<"---------------------------------------------------------"<<std::endl;
+
+
+#ifdef VIS_START_POSE
+                RobotModel start_robot_model(quadmap::point2d(start_pose->x(), start_pose->y()), robot_size, start_pose->r());
+                visualization::robot_model_to_marker(start_robot_model, start_pose_marker, VIS_FRAME_ID);
+#endif
+//#ifdef VIS_GOAL_POSE
+//                RobotModel goal_robot_model(quadmap::point2d(goal_pose->x(), goal_pose->y()), robot_size, goal_pose->r());
+//                visualization::robot_model_to_marker(goal_robot_model, goal_pose_marker, VIS_FRAME_ID);
+//#endif
+#ifdef VIS_FOOTSTEPS
+                if(!footstep_markerarray.markers.empty() && footstep_markerarray_publisher.getNumSubscribers() > 0) {
+                    footstep_markerarray_publisher.publish(footstep_markerarray);
+                }
+#endif
+                if(!footsteps_stamped.steps.empty()) {
+                    footsteps_publisher.publish(footsteps_stamped);
+                }
+                begin_flag = false;
+                if(target_num_footsteps >=2 )
+                  target_num_footsteps--;
+                return true;
+            }
+            ROS_ERROR("Cannot find the goal pose and the footsteps.");
+        }
+    }
     /*
      *
      */
@@ -392,7 +458,7 @@ begin_flag = true;
      *
      */
     bool footsteps_to_message(const std::vector<Configuration>& _footsteps, const ros::Time& _time = ros::Time::now()) {
-        if(planner.get_footsteps().size() <= 1)
+        if(planner.get_footsteps().size() <= 0)
             return false;
 
         footsteps_stamped.header.frame_id = FIXED_FRAME_ID;
@@ -476,6 +542,8 @@ protected:
     bool                    environment_flag;
     bool                    stepping_stones_flag;
 
+    int                     target_num_footsteps;
+
 #ifdef VIS_START_POSE
     ros::Publisher              start_pose_marker_publisher;
     visualization_msgs::Marker  start_pose_marker;
@@ -508,15 +576,17 @@ int main(int argc, char** argv)
     ros::NodeHandle nh;
 
     FootstepPlanningServer footstep_planning_server;
-     ros::Rate loop_rate(100);
-     ROS_ERROR("new version w 26/25");
+    ros::Rate loop_rate(100);
+    ROS_ERROR("new version w 26/25");
 
-    try{
-        while(true) {
+    try {
+        while (true) {
             // Begin the footstep planning
-            if(footstep_planning_server.isValid_flag()){
+            if (footstep_planning_server.isValid_flag()) {
+
                 //ros::Time start = ros::Time::now();
-                footstep_planning_server.planning_with_goal_search();
+                //footstep_planning_server.planning_with_goal_search();
+                footstep_planning_server.planning_target_num_footsteps();
                 footstep_planning_server.reset_flag();
                 //ros::Time end = ros::Time::now();
 
@@ -535,7 +605,7 @@ int main(int argc, char** argv)
             loop_rate.sleep();
         }
     }
-    catch (std::runtime_error& e){
+    catch (std::runtime_error &e) {
         ROS_ERROR("Exception: %s", e.what());
         return -1;
     }
