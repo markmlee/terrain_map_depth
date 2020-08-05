@@ -4,7 +4,7 @@ out_ground: "/ground_pointcloud"
 out_steps:  "/steps_pointcloud"
 out_steps_flat: "/steps_flat"
 out_steps_tranform: "/steps_tranform"
-out_steps_world_flat: "/steps_world_flat_0716"
+out_steps_world_flat: "/steps_world_flat"
 
 steps_frame: "/depth_camera_link"
 
@@ -14,7 +14,7 @@ ransac_dt: 0.008                # RANSAC distance threshold. Higher = more inclu
 
 # Octomap
 out_steps_octomap: "/steps_octomap"
-out_steps_octomap_flat: "/stepping_stones_0716"
+out_steps_octomap_flat: "/stepping_stones"
 octomap_frame: "/base_link"
 octomap_resolution: 0.02
 out_bounding_box: "/bounding_box"

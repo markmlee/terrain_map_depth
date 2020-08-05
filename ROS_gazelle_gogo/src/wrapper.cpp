@@ -340,7 +340,7 @@ int main(int argc, char *argv[])
         
         //t265 to world
         tf::Transform tf_world_track;
-		tf_world_track.setOrigin(tf::Vector3(-0.24,0.0325,-0.775));  //t265 TF at center (3.25cm y)
+		tf_world_track.setOrigin(tf::Vector3(-0.24,0.0325,-0.765));  //t265 TF at center (3.25cm y)
 		tf_world_track.setRotation(tf::Quaternion(-0.012,0,1,0));
 		br.sendTransform(tf::StampedTransform(tf_world_track, ros::Time::now(), "/camera_odom_frame", "/world"));
 		
@@ -355,13 +355,13 @@ int main(int argc, char *argv[])
 
 		//t265 to base
 		tf::Transform tf_track_base_link;
-		tf_track_base_link.setOrigin(tf::Vector3(-0.24,-0,-0.775));  
-		tf_track_base_link.setRotation(tf::Quaternion(0,0,1,0));
+		tf_track_base_link.setOrigin(tf::Vector3(-0.24,0.0325,-0.765));  
+		tf_track_base_link.setRotation(tf::Quaternion(0,0,1,0)); 
 		br.sendTransform(tf::StampedTransform(tf_track_base_link, ros::Time::now(), "/camera_pose_frame", "/base_link"));
 		
 		//t265 to kinect
 		tf::Transform tf_track_camera;
-		tf_track_camera.setOrigin(tf::Vector3(-0.24,0,0.775));  
+		tf_track_camera.setOrigin(tf::Vector3(-0.24,0.0325,0.775));  //camera base in depth lens frame
 		tf_track_camera.setRotation(tf::Quaternion(0,0.848,0,0.530));
 		br.sendTransform(tf::StampedTransform(tf_track_camera, ros::Time::now(), "/base_link", "/camera_base"));
 		

@@ -15,7 +15,7 @@ namespace visualization {
      *
      */
     void robot_model_to_marker(const RobotModel& _robot_model, visualization_msgs::Marker& _marker,
-                               const std::string& _FIXED_FRAME_ID = "map", const ros::Time& _time = ros::Time::now(), const int& _id = 0) {
+                               const std::string& _FIXED_FRAME_ID = "map", const std::string& _color = "b",const ros::Time& _time = ros::Time::now(), const int& _id = 0) {
         // Message header
         _marker.header.frame_id = _FIXED_FRAME_ID;
         _marker.header.stamp = _time;
@@ -27,10 +27,37 @@ namespace visualization {
 
         _marker.scale.x = 0.01;
 
-        _marker.color.r = 0.0;
-        _marker.color.g = 1.0;
-        _marker.color.b = 0.0;
-        _marker.color.a = 1.0;
+        if(_color == "g"){
+            _marker.color.r = 0.0;
+            _marker.color.g = 1.0;
+            _marker.color.b = 0.0;
+            _marker.color.a = 1.0;
+        }
+        else if(_color == "r"){
+            _marker.color.r = 1.0;
+            _marker.color.g = 0.0;
+            _marker.color.b = 0.0;
+            _marker.color.a = 1.0;
+        }
+        else if(_color == "b"){
+            _marker.color.r = 0.0;
+            _marker.color.g = 0.0;
+            _marker.color.b = 1.0;
+            _marker.color.a = 1.0;
+        }
+        else if(_color == "w"){
+            _marker.color.r = 1.0;
+            _marker.color.g = 1.0;
+            _marker.color.b = 1.0;
+            _marker.color.a = 1.0;
+        }
+        else{
+            _marker.color.r = 1.0;
+            _marker.color.g = 1.0;
+            _marker.color.b = 1.0;
+            _marker.color.a = 1.0;
+        }
+
 
         _marker.pose.position.x = 0.0;      _marker.pose.position.y = 0.0;      _marker.pose.position.z = 0.0;
         _marker.pose.orientation.x = 0.0;   _marker.pose.orientation.y = 0.0;   _marker.pose.orientation.z = 0.0;   _marker.pose.orientation.w = 1.0;

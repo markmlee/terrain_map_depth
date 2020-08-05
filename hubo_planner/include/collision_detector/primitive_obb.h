@@ -87,6 +87,55 @@ struct OBB {
         _vertices[3] = this->center - rot_half_width + rot_half_height;
     }
 
+    void get_cost_vertices(std::array<quadmap::point2d, 32>& _vertices) const {
+        quadmap::point2d half_size = this->length * 0.5;
+        quadmap::point2d rot_half_width  = axis[0] * half_size(0);
+        quadmap::point2d rot_half_height = axis[1] * half_size(1);
+
+        static const float scale_factor[4] = {1.1, 1.4, 1.6, 1.8}; // to impose cost and should larger than 1.0
+
+        // impose cost along the x,y direction
+        _vertices[0] = this->center + rot_half_width * scale_factor[0];
+        _vertices[1] = this->center - rot_half_width * scale_factor[0];
+        _vertices[2] = this->center + rot_half_height * scale_factor[0];
+        _vertices[3] = this->center - rot_half_height * scale_factor[0];
+
+        _vertices[4] = this->center + rot_half_width * scale_factor[1];
+        _vertices[5] = this->center - rot_half_width * scale_factor[1];
+        _vertices[6] = this->center + rot_half_height * scale_factor[1];
+        _vertices[7] = this->center - rot_half_height * scale_factor[1];
+
+        _vertices[8]  = this->center + rot_half_width * scale_factor[2];
+        _vertices[9]  = this->center - rot_half_width * scale_factor[2];
+        _vertices[10] = this->center + rot_half_height * scale_factor[2];
+        _vertices[11] = this->center - rot_half_height * scale_factor[2];
+
+        _vertices[12] = this->center + rot_half_width * scale_factor[3];
+        _vertices[13] = this->center - rot_half_width * scale_factor[3];
+        _vertices[14] = this->center + rot_half_height * scale_factor[3];
+        _vertices[15] = this->center - rot_half_height * scale_factor[3];
+
+        // impose cost along the diagonal direction
+        _vertices[16] = this->center + (-rot_half_width - rot_half_height) * scale_factor[0];
+        _vertices[17] = this->center + ( rot_half_width - rot_half_height) * scale_factor[0];
+        _vertices[18] = this->center + ( rot_half_width + rot_half_height) * scale_factor[0];
+        _vertices[19] = this->center + (-rot_half_width + rot_half_height) * scale_factor[0];
+
+        _vertices[20] = this->center + (-rot_half_width - rot_half_height) * scale_factor[1];
+        _vertices[21] = this->center + ( rot_half_width - rot_half_height) * scale_factor[1];
+        _vertices[22] = this->center + ( rot_half_width + rot_half_height) * scale_factor[1];
+        _vertices[23] = this->center + (-rot_half_width + rot_half_height) * scale_factor[1];
+
+        _vertices[24] = this->center + (-rot_half_width - rot_half_height) * scale_factor[2];
+        _vertices[25] = this->center + ( rot_half_width - rot_half_height) * scale_factor[2];
+        _vertices[26] = this->center + ( rot_half_width + rot_half_height) * scale_factor[2];
+        _vertices[27] = this->center + (-rot_half_width + rot_half_height) * scale_factor[2];
+
+        _vertices[28] = this->center + (-rot_half_width - rot_half_height) * scale_factor[3];
+        _vertices[29] = this->center + ( rot_half_width - rot_half_height) * scale_factor[3];
+        _vertices[30] = this->center + ( rot_half_width + rot_half_height) * scale_factor[3];
+        _vertices[31] = this->center + (-rot_half_width + rot_half_height) * scale_factor[3];
+    }
 
     void get_stepping_vertices(std::array<quadmap::point2d, 12>& _vertices) const {
         quadmap::point2d half_size = this->length * 0.5;

@@ -9,7 +9,8 @@
 
 #include <random>
 
-// #define USE_ROTATION
+#define USE_ROTATION
+#define USE_OPTIMIZATION
 
 class FootstepPlanner {
 public:
@@ -24,7 +25,6 @@ public:
     const double SUPPORT_REGION_MIN_X  = 0.25;  // 0.27m = FOOTSET_WIDTH(=0.22m) + SUPPORT_REGION_BIAS(=0.05m)
     const double SUPPORT_REGION_MAX_X  = 0.30;  // 0.62m = SUPPORT_REGION_MIN_X(=0.27m) + SUPPORT_REGION_WIDTH(=0.35m)
     const double SUPPORT_REGION_MIN_Y  = 0.10;  // 0.05m = SUPPORT_REGION_BIAS(=0.05m)
-    // const double SUPPORT_REGION_MAX_Y  = 0.30;  // 0.30m = SUPPORT_REGION_MAX_X(=0.05m) + SUPPORT_REGION_HEIGHT(=0.30m)
     const double SUPPORT_REGION_MAX_Y  = 0.30;  // 0.30m = SUPPORT_REGION_MAX_X(=0.05m) + SUPPORT_REGION_HEIGHT(=0.30m)
 
     //THIS IS FOR STEPPING STONE
@@ -42,9 +42,13 @@ public:
 */
 
 #ifdef USE_ROTATION
-    const double SUPPORT_REGION_ROTATION = 0.174533; // maximum range of next footstep in rotation [rad]
+    const double SUPPORT_REGION_ROTATION = 0.0174533;//0.174533; // maximum range of next footstep in rotation [rad]
 #endif
-    const unsigned int NUMBER_OF_TRIALS = 1000; //narrowpath //stepping 5000
+
+#ifdef USE_OPTIMIZATION
+
+#endif
+    const unsigned int NUMBER_OF_TRIALS = 800; //narrowpath //stepping 5000
 
     enum {
         FOOT_LEFT  = 0,
@@ -66,6 +70,14 @@ public:
      */
     bool planning(const Configuration& _start_conf, const Configuration& _goal_conf);
 
+    /*
+     *
+     */
+    bool planning_maximum_length_optimal_solution(const Configuration& _start_conf);
+    /*
+     *
+     */
+    bool planning_maximum_length(const Configuration& _start_conf);
     /*
      *
      */
@@ -147,17 +159,21 @@ protected:
      *
      */
 
-    FootstepNode* make_pair_sample(FootstepNode* _footstep_node);
+    FootstepNode* make_pair_sample(FootstepNode* parent_footstep_node);
     /*
      *
      */
     FootstepNode* make_new_sample(const std::vector<FootstepNode*>& _footstep_nodes);
-
+    /*
+     *
+     */
+    float calculateCost(const FootstepNode* _footstep_node) const;
     /*
      * Check whether the footstep is on the stepping stones.
      * The function checks the center of footstep and four vertices.
      * This computation can be inaccurate but computationally efficient.
      */
+
     inline bool isOnSteppingStones(const OBB& _footstep_model);
 
     /*
@@ -168,7 +184,7 @@ protected:
     /*
      *
      */
-    bool isAvailableFootStep(const FootstepNode* _footstep_node);
+    bool isAvailableFootStep(const FootstepNode* const _footstep_node);
     /*
      *
      */

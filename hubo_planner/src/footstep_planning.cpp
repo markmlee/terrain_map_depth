@@ -141,7 +141,7 @@ public:
         else {
             ROS_INFO("Start Planning!");
             ROS_INFO("Next Footstep : %s", (planner.get_current_footstep()) ? "left" : "right");
-            ROS_INFO("Target number of footstep : %d", target_num_footsteps);
+            //ROS_INFO("Target number of footstep : %d", target_num_footsteps);
             begin_flag = true;
         }
 //#ifdef VIS_FOOTSTEPS
@@ -231,9 +231,6 @@ public:
 
 
         ros::Time start = ros::Time::now();
-//        bool found = planner.planning(*start_pose, *goal_pose);   TODO: original
-        bool found = planner.planning(*start_pose, target_num_footsteps);
-
 
 #ifdef VIS_SUPPORT_REGION
         // start footstep
@@ -245,18 +242,29 @@ public:
                                                                     (float)planner.SUPPORT_REGION_MAX_Y-(float)planner.SUPPORT_REGION_MIN_Y+(float)FOOTSTEP_HEIGHT);
         float support_region_viz_center_x;
         float support_region_viz_center_y;
+
         if(start_footstep->isRight){
-             support_region_viz_center_x = -planner.SUPPORT_REGION_MIN_X + start_pose->x() - support_region_viz_size.x() / 2.0;
-             support_region_viz_center_y = -planner.SUPPORT_REGION_MIN_Y + start_pose->y() - support_region_viz_size.y() / 2.0;
+            support_region_viz_center_x = start_pose->x() - (planner.SUPPORT_REGION_MIN_X - FOOTSTEP_WIDTH / 2.0) * cos(start_footstep->step_conf.r() + M_PI) - support_region_viz_size.x() / 2.0;
+            support_region_viz_center_y = start_pose->y() - (planner.SUPPORT_REGION_MIN_Y - FOOTSTEP_HEIGHT / 2.0) * sin(start_footstep->step_conf.r() + M_PI) - support_region_viz_size.y() / 2.0;
         }
         else{
-            support_region_viz_center_x = -planner.SUPPORT_REGION_MIN_X + start_pose->x() - support_region_viz_size.x() / 2.0;
-            support_region_viz_center_y = planner.SUPPORT_REGION_MIN_Y + start_pose->y() + support_region_viz_size.y() / 2.0;
+            support_region_viz_center_x = start_pose->x() - (planner.SUPPORT_REGION_MIN_X - FOOTSTEP_WIDTH / 2.0) * cos(start_footstep->step_conf.r() + M_PI) - support_region_viz_size.x() / 2.0;
+            support_region_viz_center_y = start_pose->y() + (planner.SUPPORT_REGION_MIN_Y - FOOTSTEP_HEIGHT / 2.0) * sin(start_footstep->step_conf.r() + M_PI) + support_region_viz_size.y() / 2.0;
         }
+
         // visualization data
         OBB support_region_model(quadmap::point2d(support_region_viz_center_x, support_region_viz_center_y), support_region_viz_size, start_footstep->step_conf.r());
-        visualization::robot_model_to_marker(support_region_model, support_region_marker, VIS_FRAME_ID);
+        visualization::robot_model_to_marker(support_region_model, support_region_marker, VIS_FRAME_ID, "w");
         delete start_footstep;
+#endif
+
+//        bool found = planner.planning(*start_pose, *goal_pose);   TODO: original
+//        bool found = planner.planning(*start_pose, target_num_footsteps);
+//        bool found = planner.planning_maximum_length(*start_pose);
+#ifdef USE_OPTIMIZATION
+        bool found = planner.planning_maximum_length_optimal_solution(*start_pose);
+#else
+        bool found = planner.planning_maximum_length(*start_pose);
 #endif
 
         if(!found) {
@@ -401,6 +409,41 @@ public:
                 begin_flag = false;
                 if(target_num_footsteps >=2 )
                   target_num_footsteps--;
+                return true;
+            }
+            ROS_ERROR("Cannot find the goal pose and the footsteps.");
+        }
+    }
+    /*
+     *
+     */
+    bool planning_maximum_length(){
+        if (begin_flag){
+            ros::Time start = ros::Time::now();
+
+            delete start_pose;
+            update_tf();
+            start_pose = Configuration(0, 0, M_PI).get_transformed_Configuration(tf_transform_baselink2map);           //  fixed_frame : map
+
+            if(planning()) {
+                ros::Time end = ros::Time::now();
+
+                ROS_INFO("total plan time: %f [sec]", (end - start).toSec());
+                std::cout<<"---------------------------------------------------------"<<std::endl;
+
+#ifdef VIS_START_POSE
+                RobotModel start_robot_model(quadmap::point2d(start_pose->x(), start_pose->y()), robot_size, start_pose->r());
+                visualization::robot_model_to_marker(start_robot_model, start_pose_marker, VIS_FRAME_ID);
+#endif
+#ifdef VIS_FOOTSTEPS
+                if(!footstep_markerarray.markers.empty() && footstep_markerarray_publisher.getNumSubscribers() > 0) {
+                    footstep_markerarray_publisher.publish(footstep_markerarray);
+                }
+#endif
+                if(!footsteps_stamped.steps.empty()) {
+                    footsteps_publisher.publish(footsteps_stamped);
+                }
+                begin_flag = false;
                 return true;
             }
             ROS_ERROR("Cannot find the goal pose and the footsteps.");
@@ -586,7 +629,8 @@ int main(int argc, char** argv)
 
                 //ros::Time start = ros::Time::now();
                 //footstep_planning_server.planning_with_goal_search();
-                footstep_planning_server.planning_target_num_footsteps();
+                //footstep_planning_server.planning_target_num_footsteps();
+                footstep_planning_server.planning_maximum_length();
                 footstep_planning_server.reset_flag();
                 //ros::Time end = ros::Time::now();
 

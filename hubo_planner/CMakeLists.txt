@@ -19,6 +19,7 @@ find_package(catkin REQUIRED COMPONENTS
     geometry_msgs
     octomap_msgs
     visualization_msgs
+    gogo_gazelle
     message_generation
     tf
 )
@@ -134,6 +135,7 @@ include_directories(
     ${catkin_INCLUDE_DIRS}
     ${QUADMAP_INCLUDE_DIRS}
     ${OCTOMAP_INCLUDE_DIRS}
+    ${gogo_gazelle_INCLUDE_DIRS}
 )
 
 SET(COLLISION_DETECTOR_SRC
