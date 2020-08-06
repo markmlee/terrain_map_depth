@@ -9,7 +9,7 @@
 
 #include <random>
 
-#define USE_ROTATION
+//#define USE_ROTATION
 #define USE_OPTIMIZATION
 
 class FootstepPlanner {
@@ -22,7 +22,7 @@ public:
     const double SUPPORT_REGION_HEIGHT = 0.30;   // maximum range of next footstep in side direction [m]
     const double SUPPORT_REGION_BIAS   = 0.02;  //
 
-    const double SUPPORT_REGION_MIN_X  = 0.25;  // 0.27m = FOOTSET_WIDTH(=0.22m) + SUPPORT_REGION_BIAS(=0.05m)
+    const double SUPPORT_REGION_MIN_X  = 0.27;  // 0.27m = FOOTSET_WIDTH(=0.22m) + SUPPORT_REGION_BIAS(=0.05m)
     const double SUPPORT_REGION_MAX_X  = 0.30;  // 0.62m = SUPPORT_REGION_MIN_X(=0.27m) + SUPPORT_REGION_WIDTH(=0.35m)
     const double SUPPORT_REGION_MIN_Y  = 0.10;  // 0.05m = SUPPORT_REGION_BIAS(=0.05m)
     const double SUPPORT_REGION_MAX_Y  = 0.30;  // 0.30m = SUPPORT_REGION_MAX_X(=0.05m) + SUPPORT_REGION_HEIGHT(=0.30m)
@@ -48,7 +48,7 @@ public:
 #ifdef USE_OPTIMIZATION
 
 #endif
-    const unsigned int NUMBER_OF_TRIALS = 800; //narrowpath //stepping 5000
+    const unsigned int NUMBER_OF_TRIALS = 1000; //narrowpath //stepping 5000
 
     enum {
         FOOT_LEFT  = 0,

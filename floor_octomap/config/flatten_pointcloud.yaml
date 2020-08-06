@@ -15,7 +15,7 @@ ransac_dt: 0.008                # RANSAC distance threshold. Higher = more inclu
 # Octomap
 out_steps_octomap: "/steps_octomap"
 out_steps_octomap_flat: "/stepping_stones"
-octomap_frame: "/base_link"
+octomap_frame: "/map"
 octomap_resolution: 0.02
 out_bounding_box: "/bounding_box"
 bounding_box: [-2.2, 0, -0.5, 0.5, -0.2, 0.2]  # min_x, max_x, min_y, max_y, min_z, max_z

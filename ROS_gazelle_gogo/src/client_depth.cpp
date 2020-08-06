@@ -54,7 +54,10 @@
 //#define this_is_blind_test
 //#define narrow_path
 //#define stepping_stone
-#define this_is_rosbagplay
+//#define this_is_rosbagplay
+
+
+float first_x_offset = +0.05;
 
 //check Done
 ros::Subscriber result_subscriber;
@@ -159,14 +162,14 @@ typedef struct _footstep_{
 #ifdef narrow_path
 //narrow path
 footstep blind_test_values[] = {
-    {-0.25,  -0.05, 0., 0, RIGHT},
-    {-0.50,   0.05, 0., 1, LEFT},
-    {-0.75,  -0.05, 0., 2, RIGHT},
-    {-1.0,   0.05, 0., 3, LEFT},
-    {-1.25,  -0.05, 0., 4, RIGHT},
-    {-1.5,   0.05, 0., 5, LEFT},
-    {-1.8,   -pelv_width/2, 0., 6, RIGHT},
-    {-1.8,   pelv_width/2, 0., 7, LEFT},
+    {-0.30,  -0.05, 0., 0, RIGHT},
+    {-0.60,   0.05, 0., 1, LEFT},
+    {-0.90,  -0.05, 0., 2, RIGHT},
+    {-1.2,   0.05, 0., 3, LEFT},
+    {-1.50,  -0.05, 0., 4, RIGHT},
+    {-1.8,   0.05, 0., 5, LEFT},
+    {-2.1,   -pelv_width/2, 0., 6, RIGHT},
+    {-2.1,   pelv_width/2, 0., 7, LEFT},
 };
 
 #else
@@ -344,6 +347,11 @@ int main(int argc, char *argv[])
 	atResult_com_pose.position.x = 0;
 	atResult_com_pose.position.y = 0;
 	
+	bool first_com_measure_flag = true;
+	float init_com_x = 0;
+	float init_com_y = 0;
+	 
+	
 	#ifdef this_is_blind_test
 	init_footsteps_blind_test();
 	#endif
@@ -366,19 +374,34 @@ int main(int argc, char *argv[])
 				current_com_pose.orientation.w = transform_robot_com.getRotation().w();
 				//ROS_INFO("while loop: robot_com X: %f, Y: %f\n", current_com_pose.position.x, current_com_pose.position.y);
 				
+				
+				
 				if(update_current_pose_flag)
 				{
 					atResult_com_pose.position.x = current_com_pose.position.x;
 					atResult_com_pose.position.y = current_com_pose.position.y;
-					ROS_INFO("After result CB: storing robot_com X: %f, Y: %f\n", atResult_com_pose.position.x, atResult_com_pose.position.y);
+					
 					update_current_pose_flag = false;
 					
+					/* DONT NEED IF RESTART AL
 					//only 1st result callback has 1.5 sec delay (0.5 for wrapper RX, 1.0 for wrapper TX result)
 					if(cur_phase == 0)
 					{
 						atResult_com_pose.position.x = 0;
 						atResult_com_pose.position.y = 0;
 					}
+					*/
+					
+					
+						if(cur_phase == 1)
+						{
+							first_x_offset = (-1)*atResult_com_pose.position.x; //1st step offset from switching from 0th (1st index) to 1st (2nd index)
+						}
+						
+
+					
+					
+					ROS_INFO("After result CB: storing robot_com X: %f, Y: %f\n", atResult_com_pose.position.x, atResult_com_pose.position.y);
 				}
 				
 			}
@@ -409,7 +432,7 @@ int main(int argc, char *argv[])
 			{
 				
 				//ending condition
-				if(cur_phase > 7) //N-1 steps... starting from 0 and ending at N
+				if(cur_phase > 6) //N-1 steps... starting from 0 and ending at N
 				{ 
 					stateMachine_counter = 3;
 					break; //done 
@@ -501,18 +524,18 @@ time_out_counter = 1000;
 					footsteps_stamped_goal.steps.erase(footsteps_stamped_goal.steps.begin());
 					//ROS_INFO("footstep_goal size before goal-1: %lu\n", footsteps_stamped_goal.steps.size()); 
 					
-					if(cur_phase == 1)
+				}
+				
+				if(cur_phase == 1)
 					{
 						for(int i = 0; i < footsteps_stamped_goal.steps.size(); i ++){
 						//ROS_INFO("reducing x before: %f\n", footsteps_stamped_goal.steps[i].pose.position.x);
-						//footsteps_stamped_goal.steps[i].pose.position.x = footsteps_stamped_goal.steps[i].pose.position.x + 0.03; //offset the 1st step
+						footsteps_stamped_goal.steps[i].pose.position.x = footsteps_stamped_goal.steps[i].pose.position.x + (first_x_offset); //offset from transitioning 0th to 1st step
 						//ROS_INFO("reducing x after: %f\n", footsteps_stamped_goal.steps[i].pose.position.x);
 						}
+						ROS_INFO("X offset for 1st step");
 						
 					}
-					
-					
-				}
 				
 
 				//for(int i = 0; i < TOTALFOOTSTEP; i ++){
@@ -527,7 +550,7 @@ time_out_counter = 1000;
 					float tempPhase = i + cur_phase;
 #endif
 					//update values
-					walking_goal.des_footsteps[5*i + 0] = footsteps_stamped_goal.steps[i].pose.position.x + atResult_com_pose.position.x + 0.02;
+					walking_goal.des_footsteps[5*i + 0] = footsteps_stamped_goal.steps[i].pose.position.x + atResult_com_pose.position.x;
 					walking_goal.des_footsteps[5*i + 1] = footsteps_stamped_goal.steps[i].pose.position.y + atResult_com_pose.position.y;
 					walking_goal.des_footsteps[5*i + 2] = 0; //yaw_goal;
 					walking_goal.des_footsteps[5*i + 3] = i + cur_phase;
