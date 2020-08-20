@@ -54,7 +54,7 @@
 //#define this_is_blind_test
 //#define narrow_path
 //#define stepping_stone
-//#define this_is_rosbagplay
+#define this_is_rosbagplay
 
 
 float first_x_offset = +0.05;
@@ -68,6 +68,7 @@ ros::Subscriber com_pose_subscriber;
 bool updated_footstep_data = false;
 bool update_current_pose_flag = false;
 bool first_step_flag = true;
+bool init_offset_flag = true;
 
 int cur_phase = 0;
 int hz_counter = 0;
@@ -95,6 +96,8 @@ geometry_msgs::Pose current_footstep_world;
 //vector to maintain com
 geometry_msgs::Pose 	 current_com_pose;
 geometry_msgs::Pose 	 atResult_com_pose;
+geometry_msgs::Pose 	 result_com_pose;
+geometry_msgs::Pose 	 init_com_pose;
 
 //ros::Publisher 		marker_publisher_com; 
 
@@ -130,6 +133,7 @@ bool first_result = true;
 
 //update flag from /Result topic
 
+/*
 void goal_result_callback(const gogo_gazelle::MotionActionResultConstPtr& result)
   {
 	  
@@ -143,6 +147,33 @@ void goal_result_callback(const gogo_gazelle::MotionActionResultConstPtr& result
 		//updated_footstep_data = true;
     #endif
     
+  }
+*/  
+  
+void goal_result_callback(const gogo_gazelle::MotionActionResultConstPtr& result)
+  {
+
+    update_current_pose_flag = true;
+    
+    #ifdef this_is_blind_test
+		//updated_footstep_data = true;
+    #endif
+    
+    result_com_pose.position.x = result->result.com_pos[0];
+    result_com_pose.position.y = result->result.com_pos[1];
+    result_com_pose.position.z = result->result.com_pos[2];
+    
+    //store initial offset start pose  
+	if(init_offset_flag) {
+		init_com_pose.position.x = (-1)*result_com_pose.position.x;
+		init_com_pose.position.y = (-1)*result_com_pose.position.y;
+		init_com_pose.position.z = (-1)*result_com_pose.position.z;
+		init_offset_flag = false;
+	}
+
+    
+    ROS_INFO("received result now. store COM x:%f, y: %f, z: %f", result_com_pose.position.x, result_com_pose.position.y, result_com_pose.position.z );
+
   }
   
 //=================================
@@ -264,7 +295,8 @@ void state_callback(const gogo_gazelle::updateConstPtr &input)
 		footsteps_stamped_goal.steps.push_back(footstep_msg);
 		
 		
-		//adding extra foot for smooth ending  ====================================
+		//adding blind extra foot for smooth ending  ====================================
+		/*
 		if(i == footsteps_stamped->steps.size()-1)
 		{
 			footstep_msg.is_right = !(footsteps_stamped->steps[i].is_right);
@@ -285,6 +317,7 @@ void state_callback(const gogo_gazelle::updateConstPtr &input)
 			
 			footsteps_stamped_goal.steps.push_back(footstep_msg);
 		}
+		*/
 		
 	}
 	
@@ -346,6 +379,8 @@ int main(int argc, char *argv[])
 	current_com_pose.position.y = 0;
 	atResult_com_pose.position.x = 0;
 	atResult_com_pose.position.y = 0;
+	result_com_pose.position.x = 0;
+	result_com_pose.position.y = 0;
 	
 	bool first_com_measure_flag = true;
 	float init_com_x = 0;
@@ -378,30 +413,20 @@ int main(int argc, char *argv[])
 				
 				if(update_current_pose_flag)
 				{
+					//update resultCOM
 					atResult_com_pose.position.x = current_com_pose.position.x;
 					atResult_com_pose.position.y = current_com_pose.position.y;
 					
 					update_current_pose_flag = false;
-					
-					/* DONT NEED IF RESTART AL
-					//only 1st result callback has 1.5 sec delay (0.5 for wrapper RX, 1.0 for wrapper TX result)
-					if(cur_phase == 0)
-					{
-						atResult_com_pose.position.x = 0;
-						atResult_com_pose.position.y = 0;
-					}
-					*/
-					
-					
+		
 						if(cur_phase == 1)
 						{
 							first_x_offset = (-1)*atResult_com_pose.position.x; //1st step offset from switching from 0th (1st index) to 1st (2nd index)
+							first_x_offset = (-1)*result_com_pose.position.x;
 						}
 						
-
-					
-					
-					ROS_INFO("After result CB: storing robot_com X: %f, Y: %f\n", atResult_com_pose.position.x, atResult_com_pose.position.y);
+					//ROS_INFO("After result CB: storing robot_com X: %f, Y: %f\n", atResult_com_pose.position.x, atResult_com_pose.position.y);
+					//ROS_INFO("After result CB: storing robot_com X: %f, Y: %f\n", result_com_pose.position.x, result_com_pose.position.y);
 				}
 				
 			}
@@ -543,15 +568,15 @@ time_out_counter = 1000;
 					
 					if(i>= TOTALFOOTSTEP) break; //ensure doesn't exceed msg size
 #ifdef this_is_blind_test					
-					float tempX = footsteps_stamped_goal.steps[i].pose.position.x + atResult_com_pose.position.x;
-					float tempY = footsteps_stamped_goal.steps[i].pose.position.y + atResult_com_pose.position.y;
+					float tempX = footsteps_stamped_goal.steps[i].pose.position.x + result_com_pose.position.x+ init_com_pose.position.x;
+					float tempY = footsteps_stamped_goal.steps[i].pose.position.y + result_com_pose.position.y+ init_com_pose.position.y;
 					float tempZ = footsteps_stamped_goal.steps[i].pose.position.z;
 					float tempYaw = 0;
 					float tempPhase = i + cur_phase;
 #endif
 					//update values
-					walking_goal.des_footsteps[5*i + 0] = footsteps_stamped_goal.steps[i].pose.position.x + atResult_com_pose.position.x;
-					walking_goal.des_footsteps[5*i + 1] = footsteps_stamped_goal.steps[i].pose.position.y + atResult_com_pose.position.y;
+					walking_goal.des_footsteps[5*i + 0] = footsteps_stamped_goal.steps[i].pose.position.x + result_com_pose.position.x + init_com_pose.position.x;
+					walking_goal.des_footsteps[5*i + 1] = footsteps_stamped_goal.steps[i].pose.position.y + result_com_pose.position.y + init_com_pose.position.y;
 					walking_goal.des_footsteps[5*i + 2] = 0; //yaw_goal;
 					walking_goal.des_footsteps[5*i + 3] = i + cur_phase;
 					

@@ -11,6 +11,8 @@ int32       lr_state
 int32 gazelle_result
 int32 step_phase            #current step phase of podo
 int32 lr_state
+float64[3] com_pos
+float64[4] com_quat
 
 
 ---

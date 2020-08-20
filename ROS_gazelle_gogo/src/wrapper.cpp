@@ -248,6 +248,15 @@ public:
             result_.gazelle_result = RXresult.gazelle_result;
             result_.step_phase = RXresult.step_phase;
             result_.lr_state = RXresult.lr_state;
+            
+            result_.com_pos[0] = message.pel_pos_est[0];
+            result_.com_pos[1] = message.pel_pos_est[1];
+            result_.com_pos[2] = message.pel_pos_est[2];
+            result_.com_quat[0] = message.pel_quaternion[0];
+            result_.com_quat[1] = message.pel_quaternion[1];
+            result_.com_quat[2] = message.pel_quaternion[2];
+            result_.com_quat[3] = message.pel_quaternion[3];
+            
         }
 
 
