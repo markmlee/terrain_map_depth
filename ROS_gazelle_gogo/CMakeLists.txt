@@ -39,6 +39,7 @@ add_message_files(
 
 generate_messages(DEPENDENCIES actionlib_msgs std_msgs geometry_msgs)
 
+
 include_directories(${Boost_INCLUDE_DIR} ${catkin_INCLUDE_DIRS})
 
 add_executable(gogo_gazelle src/wrapper.cpp src/lanros2podo.cpp src/lanpodo2ros.cpp)
@@ -59,6 +60,10 @@ target_link_libraries(detect_peak ${catkin_LIBRARIES})
 
 add_executable(client src/client_depth.cpp)
 target_link_libraries(client ${catkin_LIBRARIES})
+
+
+add_executable(client_NP src/client_depth_NP.cpp)
+target_link_libraries(client_NP ${catkin_LIBRARIES})
 
 
 catkin_package(
