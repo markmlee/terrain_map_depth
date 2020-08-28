@@ -53,55 +53,43 @@ bool FootstepPlanner::planning_maximum_length_optimal_solution(const Configurati
 
     // Make path
     float cost_min = 100000.0;
+    int index_cost_min = 0;
+    float cost;
 
     footsteps.clear();
-    if(max_length > 1) {
+    if(max_length > GOAL_MAX_LENGTH) {
         found = true;
-        std::vector<Configuration> footsteps_temp;
-        footsteps_temp.reserve(8);
 
         for(int i = 0; i < last_footsteps.size(); i++){
-            float cost = 0;
-            FootstepNode* current = last_footsteps[i];
-            while(current != nullptr){
-                cost += calculateCost(current);
-                footsteps_temp.push_back(current->step_conf);
-                current = current->parent;
-            }
-            footsteps_temp.pop_back();
-            //ROS_INFO("Cost : %d", cost);
-            if(cost_min > cost){
-                cost_min = cost;
-                //ROS_INFO("Best Cost : %d", cost);
-                footsteps = footsteps_temp;
-            }
-            footsteps_temp.clear();
-        }
+            cost = calculateCost_FootstepTree(last_footsteps[i]);
 
+            if (cost_min > cost)
+                index_cost_min = i;
+        }
+        footsteps = getFootstepTree(last_footsteps[index_cost_min]);
         // std::cout << "Number of nodes: " << footstep_nodes[0].size() + footstep_nodes[1].size() << std::endl;
         // std::cout << "Number of steps: " << footsteps.size() << std::endl;
     }
-    else if(max_length == 1) {   // next footstep might be final footstep, so we should make pair footstep.
-        float cost;
-
-        for(int i = 0; i < footstep_nodes.size(); i++){
-            FootstepNode* pair_footstep = make_pair_sample(footstep_nodes[i]);
+    else if(max_length <= GOAL_MAX_LENGTH && max_length > 0) {   // if planned footsteps might search the goal, we should make pair footstep.
+        for(int i = 0; i < last_footsteps.size(); i++){
+            FootstepNode* pair_footstep = make_pair_sample(last_footsteps[i]);
 
             if(isAvailableFootStep(pair_footstep)){
                 found = true;
-                cost = calculateCost(footstep_nodes[i]) + calculateCost(pair_footstep);
-                if(cost_min > cost){
-                    cost_min = cost;
-                    footsteps.clear();
-                    footsteps.push_back(footstep_nodes[i]->step_conf);
-                    footsteps.push_back(pair_footstep->step_conf);
-                }
+                cost = calculateCost_FootstepTree(last_footsteps[i]) + calculateCost_OneStep(pair_footstep);
+
+                if(cost_min > cost)
+                    index_cost_min = i;
             }
             delete pair_footstep;
         }
-        if(!found){
+        footsteps.push_back(make_pair_sample(last_footsteps[index_cost_min])->step_conf);
+        auto footstep_tree = getFootstepTree(last_footsteps[index_cost_min]);
+
+        footsteps.insert(footsteps.end(), footstep_tree.begin(), footstep_tree.end());
+
+        if(!found)
             footsteps.push_back(footstep_nodes[0]->step_conf);
-        }
     }
     else {
         // std::cout << "Cannot find the path" << std::endl;
@@ -111,7 +99,6 @@ bool FootstepPlanner::planning_maximum_length_optimal_solution(const Configurati
     ROS_INFO("Number of trials : %d", NUMBER_OF_TRIALS);
     ROS_INFO("Number of paths  : %d", static_cast<int>(last_footsteps.size()));
     ROS_INFO("Best Cost : %f", cost_min);
-
 
     // Release memories
     for(auto node : footstep_nodes)
@@ -444,14 +431,44 @@ FootstepNode* FootstepPlanner::make_new_sample(const std::vector<FootstepNode*>&
 
     return next_footstep;
 }
+/**
+ * Return a Footstep Tree
+ * @param last_footstep_node
+ * @return
+ */
+std::vector<Configuration> FootstepPlanner::getFootstepTree(FootstepNode* last_footstep_node) const{
+    std::vector<Configuration> footsteps_temp;
 
+    while(last_footstep_node != nullptr){
+        footsteps_temp.push_back(last_footstep_node->step_conf);
+        last_footstep_node = last_footstep_node->parent;
+    }
+    footsteps_temp.pop_back();  // delete start footstep
+
+    return footsteps_temp;
+}
+
+/**
+ * Return cost of a Footstep Tree
+ * @param last_footstep_node
+ * @return
+ */
+float FootstepPlanner::calculateCost_FootstepTree(FootstepNode* last_footstep_node) const{
+    float cost = 0.0;
+
+    while(last_footstep_node != nullptr){
+        cost += calculateCost_OneStep(last_footstep_node);
+        last_footstep_node = last_footstep_node->parent;
+    }
+    return cost;
+}
 /**
  * Return cost of one footstep
  *
  * @param _footstep_node
  * @return cost
  */
-float FootstepPlanner::calculateCost(const FootstepNode* _footstep_node) const{
+float FootstepPlanner::calculateCost_OneStep(const FootstepNode* _footstep_node) const{
     OBB footstep_model(quadmap::point2d(_footstep_node->step_conf.x(), _footstep_node->step_conf.y()), footstep_size, _footstep_node->step_conf.r());
 
     static std::array<quadmap::point2d, 32> vertices;  // points in order to calculate cost

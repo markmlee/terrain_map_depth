@@ -43,7 +43,7 @@ protected:
 
     //This is for narrowpath
 
-    const double        FOOTSTEP_WIDTH  = 0.25;// 0.25;  // [m]
+    const double        FOOTSTEP_WIDTH  = 0.24;// 0.25;  // [m]
     const double        FOOTSTEP_HEIGHT = 0.18;//0.18;  // [m]
 
 
@@ -232,32 +232,6 @@ public:
 
         ros::Time start = ros::Time::now();
 
-#ifdef VIS_SUPPORT_REGION
-        // start footstep
-        FootstepNode* start_footstep = planner.get_current_footstep_node();
-        //::cout << "Start footstep plan: " << (start_footstep->isRight ? "Left" : "Right") << std::endl;
-        //std::cout << "Start footstep conf: " << start_footstep->step_conf.x() << " , " << start_footstep->step_conf.y() << std::endl;
-        // Support region
-        quadmap::point2d support_region_viz_size = quadmap::point2d((float)planner.SUPPORT_REGION_MAX_X-(float)planner.SUPPORT_REGION_MIN_X+(float)FOOTSTEP_WIDTH,
-                                                                    (float)planner.SUPPORT_REGION_MAX_Y-(float)planner.SUPPORT_REGION_MIN_Y+(float)FOOTSTEP_HEIGHT);
-        float support_region_viz_center_x;
-        float support_region_viz_center_y;
-
-        if(start_footstep->isRight){
-            support_region_viz_center_x = start_pose->x() - (planner.SUPPORT_REGION_MIN_X - FOOTSTEP_WIDTH / 2.0) * cos(start_footstep->step_conf.r() + M_PI) - support_region_viz_size.x() / 2.0;
-            support_region_viz_center_y = start_pose->y() - (planner.SUPPORT_REGION_MIN_Y - FOOTSTEP_HEIGHT / 2.0) * sin(start_footstep->step_conf.r() + M_PI) - support_region_viz_size.y() / 2.0;
-        }
-        else{
-            support_region_viz_center_x = start_pose->x() - (planner.SUPPORT_REGION_MIN_X - FOOTSTEP_WIDTH / 2.0) * cos(start_footstep->step_conf.r() + M_PI) - support_region_viz_size.x() / 2.0;
-            support_region_viz_center_y = start_pose->y() + (planner.SUPPORT_REGION_MIN_Y - FOOTSTEP_HEIGHT / 2.0) * sin(start_footstep->step_conf.r() + M_PI) + support_region_viz_size.y() / 2.0;
-        }
-
-        // visualization data
-        OBB support_region_model(quadmap::point2d(support_region_viz_center_x, support_region_viz_center_y), support_region_viz_size, start_footstep->step_conf.r());
-        visualization::robot_model_to_marker(support_region_model, support_region_marker, VIS_FRAME_ID, "w");
-        delete start_footstep;
-#endif
-
 //        bool found = planner.planning(*start_pose, *goal_pose);   TODO: original
 //        bool found = planner.planning(*start_pose, target_num_footsteps);
 //        bool found = planner.planning_maximum_length(*start_pose);
@@ -266,7 +240,6 @@ public:
 #else
         bool found = planner.planning_maximum_length(*start_pose);
 #endif
-
         if(!found) {
             //ros::Time end = ros::Time::now();
             //std::cout << "Cannot find the goal: " << (end - start).toSec() << " [sec]" << std::endl;
@@ -434,6 +407,32 @@ public:
 #ifdef VIS_START_POSE
                 RobotModel start_robot_model(quadmap::point2d(start_pose->x(), start_pose->y()), robot_size, start_pose->r());
                 visualization::robot_model_to_marker(start_robot_model, start_pose_marker, VIS_FRAME_ID);
+#endif
+#ifdef VIS_SUPPORT_REGION
+                // start footstep
+                FootstepNode* start_footstep = planner.get_current_footstep_node();
+                //::cout << "Start footstep plan: " << (start_footstep->isRight ? "Left" : "Right") << std::endl;
+                //std::cout << "Start footstep conf: " << start_footstep->step_conf.x() << " , " << start_footstep->step_conf.y() << std::endl;
+                // Support region
+                quadmap::point2d support_region_viz_size = quadmap::point2d((float)planner.SUPPORT_REGION_MAX_X-(float)planner.SUPPORT_REGION_MIN_X+(float)FOOTSTEP_WIDTH,
+                                                                            (float)planner.SUPPORT_REGION_MAX_Y-(float)planner.SUPPORT_REGION_MIN_Y+(float)FOOTSTEP_HEIGHT);
+                float support_region_viz_center_x;
+                float support_region_viz_center_y;
+
+                if(start_footstep->isRight){
+                    support_region_viz_center_x = start_pose->x() - (planner.SUPPORT_REGION_MIN_X - FOOTSTEP_WIDTH / 2.0) * cos(start_footstep->step_conf.r() + M_PI) - support_region_viz_size.x() / 2.0;
+                    support_region_viz_center_y = start_pose->y() - (planner.SUPPORT_REGION_MIN_Y - FOOTSTEP_HEIGHT / 2.0) * sin(start_footstep->step_conf.r() + M_PI) - support_region_viz_size.y() / 2.0;
+                }
+                else{
+                    support_region_viz_center_x = start_pose->x() - (planner.SUPPORT_REGION_MIN_X - FOOTSTEP_WIDTH / 2.0) * cos(start_footstep->step_conf.r() + M_PI) - support_region_viz_size.x() / 2.0;
+                    support_region_viz_center_y = start_pose->y() + (planner.SUPPORT_REGION_MIN_Y - FOOTSTEP_HEIGHT / 2.0) * sin(start_footstep->step_conf.r() + M_PI) + support_region_viz_size.y() / 2.0;
+                }
+
+                // visualization data
+                OBB support_region_model(quadmap::point2d(support_region_viz_center_x, support_region_viz_center_y), support_region_viz_size, start_pose->r());
+                visualization::robot_model_to_marker(support_region_model, support_region_marker, VIS_FRAME_ID, "w");
+                ROS_INFO("satrt footstep rotation : %f",start_footstep->step_conf.r() * 180/M_PI);
+                delete start_footstep;
 #endif
 #ifdef VIS_FOOTSTEPS
                 if(!footstep_markerarray.markers.empty() && footstep_markerarray_publisher.getNumSubscribers() > 0) {
