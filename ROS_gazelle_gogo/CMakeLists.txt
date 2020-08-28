@@ -66,6 +66,10 @@ add_executable(client_NP src/client_depth_NP.cpp)
 target_link_libraries(client_NP ${catkin_LIBRARIES})
 
 
+add_executable(csv src/exportCSV.cpp)
+target_link_libraries(csv ${catkin_LIBRARIES})
+
+
 catkin_package(
     CATKIN_DEPENDS
     roscpp

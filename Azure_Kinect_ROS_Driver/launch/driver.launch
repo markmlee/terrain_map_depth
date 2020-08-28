@@ -10,7 +10,7 @@
   <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" />
   <arg name="depth_enabled" default="true" />
   <!-- Enable or disable the depth camera -->
-  <arg name="depth_mode" default="WFOV_UNBINNED" />
+  <arg name="depth_mode" default="WFOV_2X2BINNED" />
   <!-- Set the depth camera mode, which affects FOV, depth range, and camera resolution. See Azure Kinect documentation for full details. Valid options: NFOV_UNBINNED, NFOV_2X2BINNED, WFOV_UNBINNED, WFOV_2X2BINNED, and PASSIVE_IR -->
   <arg name="color_enabled" default="false" />
   <!-- Enable or disable the color camera -->
@@ -18,7 +18,7 @@
   <!-- The format of RGB camera. Valid options: bgra, jpeg -->
   <arg name="color_resolution" default="720P" />
   <!-- Resolution at which to run the color camera. Valid options: 720P, 1080P, 1440P, 1536P, 2160P, 3072P -->
-  <arg name="fps" default="15" />
+  <arg name="fps" default="30" />
   <!-- FPS to run both cameras at. Valid options are 5, 15, and 30 -->
   <arg name="point_cloud" default="true" />
   <!-- Generate a point cloud from depth data. Requires depth_enabled -->
