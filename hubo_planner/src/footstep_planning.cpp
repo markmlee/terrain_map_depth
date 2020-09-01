@@ -81,7 +81,7 @@ public:
 
         footsteps_publisher        = nh.advertise<hubo_planner::FootstepsStamped>("hubo_planner/footsteps_stamped", 1);
         environment_subscriber     = nh.subscribe("environment", 1, &FootstepPlanningServer::set_environment, this);
-        stepping_stones_subscriber = nh.subscribe("stepping_stones", 1, &FootstepPlanningServer::set_stepping_stones, this);
+        stepping_stones_subscriber = nh.subscribe("steppable_region", 1, &FootstepPlanningServer::set_stepping_stones, this);
         begin_subscriber           = nh.subscribe("begin_footstep_planning", 1, &FootstepPlanningServer::begin_footstep_planning, this);
         result_subscriber          = nh.subscribe("walking/result", 1, &FootstepPlanningServer::goal_result_callback, this);
         support_step_subscriber    = nh.subscribe("robot_states", 1, &FootstepPlanningServer::support_step_callback,this);
@@ -95,6 +95,7 @@ public:
         stepping_stones = nullptr;
 
         begin_flag           = false;
+        first_moving_plan    = false;
         environment_flag     = false;
         stepping_stones_flag = false;
 
@@ -137,6 +138,7 @@ public:
         if (first_command_flag) {
             ROS_INFO("ignore first result");
             first_command_flag = false;
+            first_moving_plan = true;
         }
         else {
             ROS_INFO("Start Planning!");
@@ -340,6 +342,7 @@ public:
     bool planning_target_num_footsteps(){
 
         if (begin_flag){
+
             ros::Time start = ros::Time::now();
 
 //            TODO : remove this for requirement2
@@ -385,13 +388,28 @@ public:
                 return true;
             }
             ROS_ERROR("Cannot find the goal pose and the footsteps.");
-        }
+
+        } //end of plan
+
     }
     /*
      *
      */
     bool planning_maximum_length(){
         if (begin_flag){
+
+          if(first_moving_plan)
+          {
+            first_moving_plan = false;
+            ROS_ERROR("1st step blank publish");
+            footsteps_publisher.publish(footsteps_stamped);
+            begin_flag = false;
+            return true;
+          }
+
+          else {
+
+
             ros::Time start = ros::Time::now();
 
             delete start_pose;
@@ -446,6 +464,8 @@ public:
                 return true;
             }
             ROS_ERROR("Cannot find the goal pose and the footsteps.");
+
+          }
         }
     }
     /*
@@ -581,6 +601,7 @@ protected:
     tf::StampedTransform    tf_transform_map2baselink;
 
     bool                    begin_flag;
+    bool                    first_moving_plan;
     bool                    environment_flag;
     bool                    stepping_stones_flag;
 
@@ -619,7 +640,7 @@ int main(int argc, char** argv)
 
     FootstepPlanningServer footstep_planning_server;
     ros::Rate loop_rate(100);
-    ROS_ERROR("new version w 26/25");
+    ROS_ERROR("new version w fast plan, next foot");
 
     try {
         while (true) {

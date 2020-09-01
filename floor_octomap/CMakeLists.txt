@@ -64,6 +64,7 @@ link_libraries(${OCTOMAP_LIBRARIES})
 ## Generate messages in the 'msg' folder
 add_message_files(
   FILES
+  StampedString.msg
   BoundingBox.msg
   BoundingBoxArray.msg
 )
@@ -120,7 +121,7 @@ generate_messages(
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES floor_octomap
-  CATKIN_DEPENDS pcl_ros
+  CATKIN_DEPENDS pcl_ros message_runtime
 #  DEPENDS system_lib
 )
 
@@ -160,6 +161,7 @@ add_executable(modify_octomap_node src/modify_octomap_node.cpp)
 add_executable(modify_octomap_0416_node src/modify_octomap_0416_node.cpp)
 add_executable(flatten_pointcloud_node src/flatten_pointcloud_node.cpp)
 add_executable(flatten_pointcloud_node_0527 src/flatten_pointcloud_node_0527.cpp)
+add_executable(flatten_pointcloud_node_0720 src/flatten_pointcloud_node_0720.cpp)
 add_executable(cloud_voxel_filter_node src/cloud_voxel_filter_node.cpp)
 
 ## Rename C++ executable without prefix
@@ -177,6 +179,7 @@ target_link_libraries(modify_octomap_node ${PROJECT_NAME})
 target_link_libraries(modify_octomap_0416_node ${PROJECT_NAME})
 target_link_libraries(flatten_pointcloud_node ${PROJECT_NAME} ${PCL_LIBRARIES})
 target_link_libraries(flatten_pointcloud_node_0527 ${PROJECT_NAME} ${PCL_LIBRARIES})
+target_link_libraries(flatten_pointcloud_node_0720 ${PROJECT_NAME} ${PCL_LIBRARIES})
 target_link_libraries(cloud_voxel_filter_node ${PCL_LIBRARIES} ${catkin_LIBRARIES})
 
 

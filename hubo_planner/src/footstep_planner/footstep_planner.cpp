@@ -63,8 +63,11 @@ bool FootstepPlanner::planning_maximum_length_optimal_solution(const Configurati
         for(int i = 0; i < last_footsteps.size(); i++){
             cost = calculateCost_FootstepTree(last_footsteps[i]);
 
-            if (cost_min > cost)
+            if (cost_min > cost){
                 index_cost_min = i;
+                cost_min = cost;
+            }
+
         }
         footsteps = getFootstepTree(last_footsteps[index_cost_min]);
         // std::cout << "Number of nodes: " << footstep_nodes[0].size() + footstep_nodes[1].size() << std::endl;
@@ -78,8 +81,11 @@ bool FootstepPlanner::planning_maximum_length_optimal_solution(const Configurati
                 found = true;
                 cost = calculateCost_FootstepTree(last_footsteps[i]) + calculateCost_OneStep(pair_footstep);
 
-                if(cost_min > cost)
+                if(cost_min > cost){
                     index_cost_min = i;
+                    cost_min = cost;
+                }
+
             }
             delete pair_footstep;
         }

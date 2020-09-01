@@ -65,13 +65,13 @@
 #include "geometry_msgs/PoseArray.h"
 
 // ========== PARAMS TO MODIFY FOR SCENARIO ==========
-#define END_AFTER_FOOTSTEP       6  //N-1 steps... starting from 0 and ending at N
+#define END_AFTER_FOOTSTEP       7  //N-1 steps... starting from 0 and ending at N
 
 //IFDEF case for blind test
 //#define this_is_blind_test
 //#define narrow_path
 //#define stepping_stone
-//#define this_is_rosbagplay
+#define this_is_rosbagplay
 
 //====================================================
 
@@ -116,6 +116,9 @@ float  first_x_offset = +0.05; //DEFAULT
 //vector to maintain com
 geometry_msgs::Pose 	 result_com_pose;
 geometry_msgs::Pose 	 init_com_pose;
+geometry_msgs::Pose 	 current_ref_foot_pose;
+geometry_msgs::Pose 	 current_base_link;
+
 
 ros::Time startTime,endTime ,currentTime;
 
@@ -198,23 +201,6 @@ void goal_result_callback(const gogo_gazelle::MotionActionResultConstPtr& result
     result_com_pose.position.x = result->result.com_pos[0];
     result_com_pose.position.y = result->result.com_pos[1];
     result_com_pose.position.z = result->result.com_pos[2];
-    
-    //store 0th step offset COM pose  
-	if(init_offset_flag) {
-		init_com_pose.position.x = (-1)*result_com_pose.position.x;
-		init_com_pose.position.y = (-1)*result_com_pose.position.y;
-		init_com_pose.position.z = (-1)*result_com_pose.position.z;
-		init_offset_flag = false;
-	}
-	
-	//store 1st step COM pose
-	if(cur_phase == 1)
-	{
-		first_x_offset = (-1)*result_com_pose.position.x; //1st step offset from switching from 0th to 1st step (only in X direction)
-
-	}
-
-    ROS_INFO("received result now. store COM x:%f, y: %f, z: %f", result_com_pose.position.x, result_com_pose.position.y, result_com_pose.position.z );
 
   }
   
@@ -244,6 +230,8 @@ void goal_result_callback(const gogo_gazelle::MotionActionResultConstPtr& result
 		m.getRPY(roll, pitch, yaw);
 		std::cout << "R: "  << yaw << std::endl;
 		
+		
+		
 		//store in goal  ====================================
 		footstep_msg.is_right = footsteps_stamped->steps[i].is_right;
         footstep_msg.pose.position.x = footsteps_stamped->steps[i].pose.position.x; 
@@ -254,12 +242,35 @@ void goal_result_callback(const gogo_gazelle::MotionActionResultConstPtr& result
         footstep_msg.pose.orientation.y = footsteps_stamped->steps[i].pose.orientation.y;
         footstep_msg.pose.orientation.z = footsteps_stamped->steps[i].pose.orientation.z;
         footstep_msg.pose.orientation.w = footsteps_stamped->steps[i].pose.orientation.w;
-		
+        
+        //overwrite 1st step if smaller than 0.1m  ====================================
+        if(cur_phase > 1) //exclude 0th goal b/c standing still
+        {
+			if(i == 0) //overwrite only 0th array value
+			{
+				if(fabs(footstep_msg.pose.orientation.y) < 0.1) //check value
+				{
+					if(footstep_msg.pose.orientation.y > 0)
+					{
+						ROS_ERROR("Next footstep is SMALL! Overwrite value to 0.1");
+						footstep_msg.pose.orientation.y  = 0.1;
+					}
+					else
+					{
+						ROS_ERROR("Next footstep is SMALL! Overwrite value to -0.1");
+						footstep_msg.pose.orientation.y  = -0.1;
+					}
+				}
+			}
+		}
+        		
 		footsteps_stamped_goal.steps.push_back(footstep_msg);
 		
 	}
 
 	 updated_footstep_data = true;
+	 
+	 
 		
     //ROS_INFO("footstep_goal steps: %lu\n", footsteps_stamped_goal.steps.size());    
         
@@ -287,7 +298,7 @@ int main(int argc, char *argv[])
     
     // Create a ROS subscriber for robot state
 	ros::Subscriber sub_footstep = nh.subscribe("hubo_planner/footsteps_stamped", 1, update_footstep_array);
-	ros::Subscriber sub_result = nh.subscribe("/walking/result", 1, goal_result_callback);
+	//ros::Subscriber sub_result = nh.subscribe("/walking/result", 1, goal_result_callback);
 
 	// Create a ROS publisher
 	ros::Publisher initial_plan_publisher = nh.advertise<std_msgs::String>("/begin_footstep_planning",1);
@@ -303,9 +314,13 @@ int main(int argc, char *argv[])
 	ros::Rate loop_rate(100);
 	
 	int time_execution_counter = 0;
+	double roll, pitch, yaw;
 	
 	result_com_pose.position.x = 0;
 	result_com_pose.position.y = 0;
+	current_ref_foot_pose.position.x = 0;
+	current_ref_foot_pose.position.y = 0;
+	
 
 	#ifdef this_is_blind_test
 	init_footsteps_blind_test();
@@ -327,6 +342,39 @@ int main(int argc, char *argv[])
  
 	while (ros::ok())
 	{
+		
+		//get base_link TF
+		//Get Transform
+			tf::StampedTransform transform;
+			try{
+				listener.waitForTransform("/base_link",  "/world", ros::Time(0), ros::Duration(0.05));
+				listener.lookupTransform("/base_link",  "/world", ros::Time(0), transform);
+				
+				current_base_link.position.x = transform.getOrigin().x(); 
+				current_base_link.position.y = transform.getOrigin().y();
+				current_base_link.position.z = transform.getOrigin().z();
+				current_base_link.orientation.x = transform.getRotation().x();
+				current_base_link.orientation.y = transform.getRotation().y();
+				current_base_link.orientation.z = transform.getRotation().z();
+				current_base_link.orientation.w = transform.getRotation().w();
+				
+				tf::Quaternion q(
+				current_base_link.orientation.x,
+				current_base_link.orientation.y,
+				current_base_link.orientation.z,
+				current_base_link.orientation.w);
+				
+				tf::Matrix3x3 m(q);
+				m.getRPY(roll, pitch, yaw);
+		
+				
+			}
+			
+			catch (tf::TransformException ex){
+				ROS_ERROR("ERRORLOG: %s", ex.what());
+				ros::Duration(0.001).sleep();
+			}
+			
 
 		//FSM
 		switch(stateMachine_counter)
@@ -399,10 +447,12 @@ time_out_counter = 1000;
 					}
 					
 					//Convert footstep local to global value 
+					/* DONT USE RESULT COM POSE ==> USE PREVIOUS GOAL AS REFERENCE
 					for(int i = 0; i < footsteps_stamped_goal.steps.size(); i ++){
 						footsteps_stamped_goal.steps[i].pose.position.x  = footsteps_stamped_goal.steps[i].pose.position.x + result_com_pose.position.x + init_com_pose.position.x;
 						footsteps_stamped_goal.steps[i].pose.position.y  = footsteps_stamped_goal.steps[i].pose.position.y + result_com_pose.position.y + init_com_pose.position.y;
 					}
+					*/
 				
 				}
 				
@@ -472,6 +522,10 @@ time_out_counter = 1000;
 				walking_goal.footstep_flag = true;
 				walking_goal.ros_cmd = ROSWALK_BREAK;
 				
+				ROS_INFO("stored prev_footX %f: prev_footY: %f\n",current_ref_foot_pose.position.x, current_ref_foot_pose.position.y);
+				
+				ROS_INFO("baselink X:%.2f, Y:%.2f, roll:%.2f, pitch:%.2f, yaw:%.2f",current_base_link.position.x ,current_base_link.position.y, roll*R2D, pitch*R2D, yaw*R2D);
+				
 				
 				//for(int i = 0; i < TOTALFOOTSTEP; i ++){
 				for(int i = 0; i < footsteps_stamped_goal.steps.size(); i ++){
@@ -479,8 +533,8 @@ time_out_counter = 1000;
 					if(i>= TOTALFOOTSTEP) break; //ensure doesn't exceed msg size
 
 					//update values
-					walking_goal.des_footsteps[5*i + 0] = footsteps_stamped_goal.steps[i].pose.position.x;
-					walking_goal.des_footsteps[5*i + 1] = footsteps_stamped_goal.steps[i].pose.position.y;
+					walking_goal.des_footsteps[5*i + 0] = footsteps_stamped_goal.steps[i].pose.position.x + current_ref_foot_pose.position.x;
+					walking_goal.des_footsteps[5*i + 1] = footsteps_stamped_goal.steps[i].pose.position.y + current_ref_foot_pose.position.y;
 					walking_goal.des_footsteps[5*i + 2] = 0; //yaw_goal;
 					walking_goal.des_footsteps[5*i + 3] = i + cur_phase;
 					
@@ -498,10 +552,19 @@ time_out_counter = 1000;
 					ac_footprint.sendGoal(walking_goal);
 #endif
 					
-				
-					//return to IDLE state
-					if(!first_goal_flag) cur_phase++; 
 					
+					
+						
+					
+					//return to IDLE state
+					if(!first_goal_flag) 
+					{
+						cur_phase++; 
+						//update reference foot pose
+						current_ref_foot_pose.position.x = walking_goal.des_footsteps[0];
+						current_ref_foot_pose.position.y = walking_goal.des_footsteps[1];
+					
+					}
 					updated_footstep_data = false;
 					time_execution_counter = 0;
 					stateMachine_counter = WAIT_FOOTSTEPS; 
