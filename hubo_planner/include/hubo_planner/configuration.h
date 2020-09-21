@@ -64,12 +64,13 @@ struct Configuration {
         return operator()(2);
     }
     inline void transform(const double &x, const double &y, const double &r){
-//        ROS_INFO("map      : %f %f %f", data[0], data[1], data[2]);
-        data[0] = cos(r)*data[0] - sin(r)*data[1] + x;
-        data[1] = sin(r)*data[0] + cos(r)*data[1] + y;
-        data[2] = data[2] + r;
-//        ROS_INFO("baselink : %f %f %f", data[0], data[1], data[2]);
+      auto data0 = data[0];
+      auto data1 = data[1];
+      data[0] = cos(r)*data0 - sin(r)*data1 + x;
+      data[1] = sin(r)*data0 + cos(r)*data1 + y;
+      data[2] = data[2] + r;
     }
+
     inline Configuration* get_transformed_Configuration(const tf::StampedTransform &tf_transform){
         double roll, pitch, yaw;
 

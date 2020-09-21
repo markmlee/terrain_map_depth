@@ -350,7 +350,6 @@ bool FootstepPlanner::planning(const Configuration& _goal_conf)
         {
           ROS_INFO("succesful plan after trial :%i", i);
           break;
-          ROS_INFO("THIS SHOULDN'T PRINT");
         }
 
     }
@@ -386,15 +385,29 @@ bool FootstepPlanner::planning(const Configuration& _goal_conf)
 
 void FootstepPlanner::set_initial_footsteps_from_pose(const Configuration& _configuration, FootstepNode& _left_footstep, FootstepNode& _right_footstep)
 {
-    quadmap::point2d center_to_foot(-(float)(std::sin(_configuration.r()) * D), (float)(std::cos(_configuration.r()) * D));
+    static bool first_plan = true;
+    if(first_plan){
+        quadmap::point2d center_to_foot(-(float)(std::sin(_configuration.r()) * D), (float)(std::cos(_configuration.r()) * D));
 
-    _left_footstep.step_conf.x() = _configuration.x() + center_to_foot.x();
-    _left_footstep.step_conf.y() = _configuration.y() + center_to_foot.y();
-    _left_footstep.step_conf.r() = _configuration.r();
+        _left_footstep.step_conf.x() = _configuration.x() + center_to_foot.x();
+        _left_footstep.step_conf.y() = _configuration.y() + center_to_foot.y();
+        _left_footstep.step_conf.r() = _configuration.r();
 
-    _right_footstep.step_conf.x() = _configuration.x() - center_to_foot.x();
-    _right_footstep.step_conf.y() = _configuration.y() - center_to_foot.y();
-    _right_footstep.step_conf.r() = _configuration.r();
+        _right_footstep.step_conf.x() = _configuration.x() - center_to_foot.x();
+        _right_footstep.step_conf.y() = _configuration.y() - center_to_foot.y();
+        _right_footstep.step_conf.r() = _configuration.r();
+
+        first_plan=false;
+    }
+    else{
+        _left_footstep.step_conf.x() = _configuration.x();
+        _left_footstep.step_conf.y() = _configuration.y();
+        _left_footstep.step_conf.r() = _configuration.r();
+
+        _right_footstep.step_conf.x() = _configuration.x();
+        _right_footstep.step_conf.y() = _configuration.y();
+        _right_footstep.step_conf.r() = _configuration.r();
+    }
 }
 FootstepNode* FootstepPlanner::make_pair_sample(FootstepNode* parent_footstep_node){
     Configuration pair_footstep_conf;
@@ -410,6 +423,7 @@ FootstepNode* FootstepPlanner::make_pair_sample(FootstepNode* parent_footstep_no
 }
 FootstepNode* FootstepPlanner::make_new_sample(const std::vector<FootstepNode*>& _footstep_nodes)
 {
+  //ROS_INFO("xmin:%f, xmax:%f, ymin:%f, ymax:%f\n",SUPPORT_REGION_MIN_X, SUPPORT_REGION_MAX_X, SUPPORT_REGION_MIN_Y, SUPPORT_REGION_MAX_Y);
     // 1. Random selection of node index
     std::random_device generator;
     std::uniform_int_distribution<int> index_distribution(0, _footstep_nodes.size()-1);

@@ -32,6 +32,19 @@
 #define VIS_FOOTSTEPS
 #define VIS_SUPPORT_REGION
 
+//global var
+bool plan_succes_flag = false;
+int replan_counter = 0;
+int RUN_MODE_PLAN = 0;
+
+double SUPPORT_HEIGHT_param;
+
+double SUPPORT_BIAS_param;
+double SUPPORT_xMIN_param;
+double SUPPORT_xMAX_param;
+double SUPPORT_yMIN_param;
+double SUPPORT_yMAX_param;
+
 class FootstepPlanningServer {
 protected:
     // OPTIONS =========================================================================================================
@@ -41,17 +54,10 @@ protected:
     const double        ROBOT_WIDTH  = 0.7;
     const double        ROBOT_HEIGHT = 0.8;
 
-    //This is for narrowpath
+    //This is default (true) footsize
+    double        FOOTSTEP_WIDTH  = 0.22;  // [m]
+    double        FOOTSTEP_HEIGHT = 0.15; // [m]
 
-    const double        FOOTSTEP_WIDTH  = 0.24;// 0.25;  // [m]
-    const double        FOOTSTEP_HEIGHT = 0.18;//0.18;  // [m]
-
-
-// This is for stepping stone
-/*
-    const double        FOOTSTEP_WIDTH  = 0.26;  // [m] X
-    const double        FOOTSTEP_HEIGHT = 0.25;  // [m] Y //0.26 was great
-*/
 
     const double        GOAL_SEARCH_MAX_RADIUS = 1.2;
     const double        GOAL_SEARCH_MIN_RADIUS = 0.2;
@@ -103,6 +109,7 @@ public:
 
 #ifdef VIS_START_POSE
         update_tf();
+        //update_param(); //update param from default values
         Configuration* transformed_start_pose = start_pose->get_transformed_Configuration(tf_transform_baselink2map);  //transform
         RobotModel robot_model(quadmap::point2d(start_pose->x(), start_pose->y()), robot_size, start_pose->r());
         visualization::robot_model_to_marker(robot_model, start_pose_marker, VIS_FRAME_ID);
@@ -130,10 +137,11 @@ public:
     void goal_result_callback(const gogo_gazelle::MotionActionResultConstPtr &result) {
 
         // TODO : Requirement2
-        delete start_pose;
-        update_tf();
-        start_pose = Configuration(0, 0, M_PI).get_transformed_Configuration(tf_transform_baselink2map);           //  fixed_frame : map
+        //delete start_pose;
+        //update_tf();
+        //start_pose = Configuration(0, 0, M_PI).get_transformed_Configuration(tf_transform_baselink2map);           //  fixed_frame : map
 
+        plan_succes_flag = false;
 
         if (first_command_flag) {
             ROS_INFO("ignore first result");
@@ -141,10 +149,11 @@ public:
             first_moving_plan = true;
         }
         else {
-            ROS_INFO("Start Planning!");
-            ROS_INFO("Next Footstep : %s", (planner.get_current_footstep()) ? "left" : "right");
+            ROS_INFO("received  result!");
+            //ROS_INFO("Next Footstep : %s", (planner.get_current_footstep()) ? "left" : "right");
             //ROS_INFO("Target number of footstep : %d", target_num_footsteps);
             begin_flag = true;
+
         }
 //#ifdef VIS_FOOTSTEPS
 //        if(!footstep_markerarray.markers.empty() && footstep_markerarray_publisher.getNumSubscribers() > 0) {
@@ -207,6 +216,7 @@ public:
 //        std::cout << "OctoMap Size: " << stepping_stones_3d->size() << std::endl;
 
         delete stepping_stones;
+//        ROS_INFO("creating new octomap for steppable region");
         stepping_stones = new quadmap::QuadTree(stepping_stones_3d->getResolution());
         utils::project_environment(stepping_stones_3d, stepping_stones, -0.5, 0.1);
         planner.set_stepping_stones(stepping_stones);
@@ -398,12 +408,15 @@ public:
     bool planning_maximum_length(){
         if (begin_flag){
 
+          replan_counter++;
+
           if(first_moving_plan)
           {
             first_moving_plan = false;
             ROS_ERROR("1st step blank publish");
             footsteps_publisher.publish(footsteps_stamped);
             begin_flag = false;
+            plan_succes_flag = true;
             return true;
           }
 
@@ -416,6 +429,7 @@ public:
             update_tf();
             start_pose = Configuration(0, 0, M_PI).get_transformed_Configuration(tf_transform_baselink2map);           //  fixed_frame : map
 
+            ROS_INFO("entering plan loop");
             if(planning()) {
                 ros::Time end = ros::Time::now();
 
@@ -461,6 +475,7 @@ public:
                     footsteps_publisher.publish(footsteps_stamped);
                 }
                 begin_flag = false;
+                plan_succes_flag = true;
                 return true;
             }
             ROS_ERROR("Cannot find the goal pose and the footsteps.");
@@ -568,11 +583,41 @@ public:
     void update_tf(){
         try{
             tf_listener.lookupTransform("/map", "/base_link", ros::Time(0), tf_transform_baselink2map);
-            tf_listener.lookupTransform("/base_link", "/map",  ros::Time(0), tf_transform_map2baselink);
+            tf_transform_map2baselink.setData(tf_transform_baselink2map.inverse());
         }
         catch (tf::TransformException ex){
             ROS_WARN("%s",ex.what());
         }
+    }
+
+    /*Modify footstep param in the .yaml file according to the scenario */
+    void update_param(){
+
+      if(RUN_MODE_PLAN == 1)
+      {
+        ROS_INFO("Stepping stone param for footstep");
+        FOOTSTEP_WIDTH  = 0.25;  // [m] X
+        FOOTSTEP_HEIGHT = 0.22;  // [m] Y //0.26 was great also
+      }
+
+      else if(RUN_MODE_PLAN == 2)
+      {
+        ROS_INFO("narrowpath param for footstep");
+        FOOTSTEP_WIDTH  = 0.23;  // [m] X
+        FOOTSTEP_HEIGHT = 0.15;  // [m] Y
+      }
+
+      else if(RUN_MODE_PLAN == 3)
+      {
+        ROS_INFO("obstacle param for footstep");
+        FOOTSTEP_WIDTH  = 0.25;  // [m] X
+        FOOTSTEP_HEIGHT = 0.22;  // [m] Y
+      }
+      else
+      {
+        ROS_ERROR("unknown parameter requested");
+      }
+
     }
 protected:
     Configuration*          start_pose;
@@ -638,9 +683,43 @@ int main(int argc, char** argv)
     ros::init(argc, argv, "footstep_planning");
     ros::NodeHandle nh;
 
+    //load param from .yaml file for each scenario
+    nh.getParam("/footstep_planning/RUN_MODE_PLAN", RUN_MODE_PLAN);
+    nh.getParam("/footstep_planning/SUPPORT_HEIGHT", SUPPORT_HEIGHT_param);
+
+    if(RUN_MODE_PLAN == 1)
+    {
+      ROS_INFO("loading param for stepping stones. Wider footsteps");
+      nh.getParam("/footstep_planning/ss_SUPPORT_BIAS", SUPPORT_BIAS_param);
+      nh.getParam("/footstep_planning/ss_SUPPORT_xMIN", SUPPORT_xMIN_param);
+      nh.getParam("/footstep_planning/ss_SUPPORT_xMAX", SUPPORT_xMAX_param);
+      nh.getParam("/footstep_planning/ss_SUPPORT_yMIN", SUPPORT_yMIN_param);
+      nh.getParam("/footstep_planning/ss_SUPPORT_yMAX", SUPPORT_yMAX_param);
+    }
+    else if(RUN_MODE_PLAN == 2)
+    {
+      ROS_INFO("loading param for narrow path. Smaller footsteps");
+      nh.getParam("/footstep_planning/np_SUPPORT_BIAS", SUPPORT_BIAS_param);
+      nh.getParam("/footstep_planning/np_SUPPORT_xMIN", SUPPORT_xMIN_param);
+      nh.getParam("/footstep_planning/np_SUPPORT_xMAX", SUPPORT_xMAX_param);
+      nh.getParam("/footstep_planning/np_SUPPORT_yMIN", SUPPORT_yMIN_param);
+      nh.getParam("/footstep_planning/np_SUPPORT_yMAX", SUPPORT_yMAX_param);
+    }
+
+    else if (RUN_MODE_PLAN == 3)
+    {
+      ROS_INFO("loading param for obstacle. Wider footsteps");
+      nh.getParam("/footstep_planning/ss_SUPPORT_BIAS", SUPPORT_BIAS_param);
+      nh.getParam("/footstep_planning/ss_SUPPORT_xMIN", SUPPORT_xMIN_param);
+      nh.getParam("/footstep_planning/ss_SUPPORT_xMAX", SUPPORT_xMAX_param);
+      nh.getParam("/footstep_planning/ss_SUPPORT_yMIN", SUPPORT_yMIN_param);
+      nh.getParam("/footstep_planning/ss_SUPPORT_yMAX", SUPPORT_yMAX_param);
+    }
+
+
     FootstepPlanningServer footstep_planning_server;
     ros::Rate loop_rate(100);
-    ROS_ERROR("new version w fast plan, next foot");
+    ROS_ERROR("new version w fast plan, next foot, replan. Param!");
 
     try {
         while (true) {
@@ -651,13 +730,24 @@ int main(int argc, char** argv)
                 //footstep_planning_server.planning_with_goal_search();
                 //footstep_planning_server.planning_target_num_footsteps();
                 footstep_planning_server.planning_maximum_length();
-                footstep_planning_server.reset_flag();
+                if(plan_succes_flag == true)
+                {
+                  footstep_planning_server.reset_flag();
+                  replan_counter = 0;
+//                  ROS_INFO("okay to reset now");
+                }
                 //ros::Time end = ros::Time::now();
 
                 //std::cout<<"---------------------------------------------------------"<<std::endl;
 //                std::cout << "" << (end - start).toSec() << " [sec]" << std::endl;
                 footstep_planning_server.publish_messages();
 //                ROS_WARN("published footstep");   TODO
+            }
+
+            if(replan_counter > 50){
+
+              ROS_ERROR("REPLANNED 50 TIMES AND STILL FAILED. EXIT");
+              return true;
             }
             ////////////////////////////////////////////////////////////////////////////////////////////////////////////
             // If the robot move the foot to the next stamp successfully,
