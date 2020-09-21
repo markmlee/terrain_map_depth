@@ -1,0 +1,18 @@
+<launch>
+  <!-- realsense -->
+  <!-- kinect -->
+  <!-- gogo gazelle wrapper -->
+  <!-- rviz 
+       <node pkg="rviz" type="rviz" name="rviz" args="-d $(find floor_octomap)/rviz/pointcloud_rviz_config.rviz" />
+  -->
+  <!-- Run flatten_pointcloud  
+       <node pkg="floor_octomap" type="flatten_pointcloud_node_0720" name="flatten_pointcloud_node_0720" output="screen">
+       <rosparam command="load" file="$(find floor_octomap)/config/flatten_pointcloud.yaml" />
+       </node>
+  -->
+  <!-- footstep planner   -->
+  <node pkg="hubo_planner" type="footstep_planning" name="footstep_planning" output="screen">
+    <rosparam command="load" file="$(find hubo_planner)/config/footstep.yaml" />
+  </node>
+  <!-- client -->
+</launch>
