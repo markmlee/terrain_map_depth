@@ -65,13 +65,13 @@
 #include "geometry_msgs/PoseArray.h"
 
 // ========== PARAMS TO MODIFY FOR SCENARIO ==========
-#define END_AFTER_FOOTSTEP       7  //N-1 steps... starting from 0 and ending at N
+#define END_AFTER_FOOTSTEP       6  //N-1 steps... starting from 0 and ending at N
 
 //IFDEF case for blind test
 //#define this_is_blind_test
 //#define narrow_path
 //#define stepping_stone
-#define this_is_rosbagplay
+//#define this_is_rosbagplay
 
 //====================================================
 
@@ -243,26 +243,32 @@ void goal_result_callback(const gogo_gazelle::MotionActionResultConstPtr& result
         footstep_msg.pose.orientation.z = footsteps_stamped->steps[i].pose.orientation.z;
         footstep_msg.pose.orientation.w = footsteps_stamped->steps[i].pose.orientation.w;
         
+        //give y value gain of 0.8 to move from edge  ====================================
+        footstep_msg.pose.position.y = 0.8 * footstep_msg.pose.position.y;
+        
+        
         //overwrite 1st step if smaller than 0.1m  ====================================
         if(cur_phase > 1) //exclude 0th goal b/c standing still
         {
 			if(i == 0) //overwrite only 0th array value
 			{
-				if(fabs(footstep_msg.pose.orientation.y) < 0.1) //check value
+				if(fabs(footstep_msg.pose.position.y ) < 0.1) //check value
 				{
-					if(footstep_msg.pose.orientation.y > 0)
+					if(footstep_msg.pose.position.y  > 0)
 					{
 						ROS_ERROR("Next footstep is SMALL! Overwrite value to 0.1");
-						footstep_msg.pose.orientation.y  = 0.1;
+						footstep_msg.pose.position.y  = 0.1;
 					}
 					else
 					{
 						ROS_ERROR("Next footstep is SMALL! Overwrite value to -0.1");
-						footstep_msg.pose.orientation.y  = -0.1;
+						footstep_msg.pose.position.y   = -0.1;
 					}
 				}
 			}
 		}
+		
+		//=========================================================================
         		
 		footsteps_stamped_goal.steps.push_back(footstep_msg);
 		

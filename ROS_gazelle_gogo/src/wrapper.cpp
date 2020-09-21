@@ -298,7 +298,7 @@ void init_parameters()
 
 	//t265cam to pevlin from CAD (t2pevlin - base2pelv)
 	tracking_to_pelvis.position.x = -0.19913; 
-	tracking_to_pelvis.position.y = -0.032;
+	tracking_to_pelvis.position.y = 0.032;
 	tracking_to_pelvis.position.z = -0.12198;
 	
 	tracking_to_kinect.position.x = -0.0056; 
@@ -408,8 +408,8 @@ int main(int argc, char *argv[])
 		if(!found_cam2base){
 			//
 			tracking_to_base.position.x = tracking_to_pelvis.position.x + message.pel_pos_est[0];
-			tracking_to_base.position.y = -1*(tracking_to_pelvis.position.y - message.pel_pos_est[1]);
-			tracking_to_base.position.z = tracking_to_pelvis.position.z - message.pel_pos_est[2];
+			tracking_to_base.position.y = tracking_to_pelvis.position.y + message.pel_pos_est[1]; //X,Y axis between cam and robot are different
+			tracking_to_base.position.z = tracking_to_pelvis.position.z + (-1)*message.pel_pos_est[2]; //Z axis between cam and robot are the same
 			found_cam2base = true;
 			ROS_WARN("calibrated cam2base once and only once!");
 			
@@ -453,7 +453,7 @@ int main(int argc, char *argv[])
 			tf_track_camera.setRotation(tf::Quaternion(tracking_to_kinect.orientation.x, tracking_to_kinect.orientation.y, tracking_to_kinect.orientation.z, tracking_to_kinect.orientation.w));
 			br.sendTransform(tf::StampedTransform(tf_track_camera, ros::Time::now(), "/base_link", "/camera_base"));
 			
-			
+
 			//world to robot_com
 			tf::Transform tf_world_robot;
 			tf_world_robot.setOrigin(tf::Vector3(RX.pel_pos_est[0], RX.pel_pos_est[1],RX.pel_pos_est[2]));  
