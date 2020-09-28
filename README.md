@@ -1,6 +1,6 @@
 # terrain_mapping_depth
 
-![Screenshot](/files/step_rotation.png)
+![Screenshot](gazelle_steppingstone_visionV3.png)
 
 ## Overview
 Integration of mapping, footstep planning, FSM, and ROSPODO API for Gazelle bipedal robot.
