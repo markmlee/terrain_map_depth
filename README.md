@@ -13,7 +13,7 @@ install ROS Octomap and RViz plugins
 $ sudo apt-get install ros-melodic-octomap*
 ```
 
-install ROS Octomap and RViz plugins
+install quadmap library
 ```
 $ cd ~/Downloads && git clone https://github.com/PinocchioYS/SuperRay.git
 $ mkdir SuperRay/build && cd SuperRay/build
