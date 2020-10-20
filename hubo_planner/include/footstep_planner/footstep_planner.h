@@ -51,7 +51,7 @@ public:
 
 
 #ifdef USE_ROTATION
-    const double SUPPORT_REGION_ROTATION = 0.0174533;//0.174533; // maximum range of next footstep in rotation [rad]
+    const double SUPPORT_REGION_ROTATION = 0.0872665; // 0.0174533; maximum range of next footstep in rotation [rad]
 #endif
 
 #ifdef USE_OPTIMIZATION

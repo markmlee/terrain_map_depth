@@ -407,20 +407,20 @@ void obstacle_callback(const sensor_msgs::PointCloud2ConstPtr& cloud_msg)
     publish_bounding_box(cloud_msg->header.stamp, transformed_bbox_points);
 
 
-    /* Transform obstacle pointcloud */
+    /* Transform obstacle pointcloud
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr obstacle_world_full (new pcl::PointCloud<pcl::PointXYZRGB>);
     sensor_msgs::PointCloud2 obstacle_cloud_msg, obstacle_cloud_world_msg;
     pcl::toROSMsg (*obstacles, obstacle_cloud_msg);
     pcl_ros::transformPointCloud(octomap_frame, pointcloud_transform, obstacle_cloud_msg, obstacle_cloud_world_msg);
     pcl::fromROSMsg (obstacle_cloud_world_msg, *obstacle_world_full);
+ */
 
-
-    /* Crop obstacle pointcloud by bounding box */
+    /* Crop obstacle pointcloud by bounding box 
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr obstacle_world (new pcl::PointCloud<pcl::PointXYZRGB>);
     crophull_pointcloud(obstacle_world_full, obstacle_world, transformed_bbox_points);
+*/
 
-
-    /* Create and publish octomap */
+    /* Create and publish octomap 
     octomap::OcTree *octree_obstacle = new octomap::OcTree(octomap_resolution);
     for(pcl::PointCloud<pcl::PointXYZRGB>::iterator it = obstacle_world->begin(); it != obstacle_world->end(); it++)
     {
@@ -428,7 +428,7 @@ void obstacle_callback(const sensor_msgs::PointCloud2ConstPtr& cloud_msg)
         octree_obstacle->updateNode(coord, true, true);
     }
     publish_octomap(octree_obstacle, &pub_obstacle, cloud_msg->header.stamp);
-
+*/
 
     /* Transform steppable pointcloud */
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr steps_world_full (new pcl::PointCloud<pcl::PointXYZRGB>);
@@ -471,9 +471,12 @@ void callback_branch(const sensor_msgs::PointCloud2ConstPtr& cloud_msg, const fl
 void callback_branch_pcloud(const sensor_msgs::PointCloud2ConstPtr& cloud_msg)
 {
     if (RUN_MODE == 1)
-        bridge_callback(cloud_msg);
+        bridge_callback(cloud_msg); //SteppingStone
     else if (RUN_MODE == 2)
-        obstacle_callback(cloud_msg);
+        bridge_callback(cloud_msg); //NarrowPath
+    else if (RUN_MODE == 3)
+        obstacle_callback(cloud_msg); //obstacle
+        
     else
         std::cout << "ERROR: RUN_MODE must be either 1 or 2. Currently set to " << RUN_MODE << std::endl;
 }
@@ -521,19 +524,31 @@ int main(int argc, char **argv) {
 	
 	ros::Subscriber sub = nh.subscribe(in_points, 1, callback_branch_pcloud);
 	
-	//publish pcloud
-    pub_ground = nh.advertise<sensor_msgs::PointCloud2>(out_ground, 1);
-    pub_steps = nh.advertise<sensor_msgs::PointCloud2>(out_steps, 1);
-    pub_steps_world_flat = nh.advertise<sensor_msgs::PointCloud2>(out_steps_world_flat, 1);
+	
+	ros::Rate loop_rate(10);
+	tf_listener = new tf::TransformListener();
+	
+	while (ros::ok())
+	{
+		//publish pcloud
+		pub_ground = nh.advertise<sensor_msgs::PointCloud2>(out_ground, 1);
+		pub_steps = nh.advertise<sensor_msgs::PointCloud2>(out_steps, 1);
+		pub_steps_world_flat = nh.advertise<sensor_msgs::PointCloud2>(out_steps_world_flat, 1);
+		
+
+		//publish octomap
+		pub_steppable = nh.advertise<octomap_msgs::Octomap>(out_steppable, 1);
+		pub_obstacle = nh.advertise<octomap_msgs::Octomap>(out_obstacle, 1);
+		pub_bounding_box = nh.advertise<visualization_msgs::Marker>(out_bounding_box, 1);
+
+		
+
+		ros::spinOnce();
+		loop_rate.sleep();
+		
+	}
+		return 0;
     
-
-	//publish octomap
-    pub_steppable = nh.advertise<octomap_msgs::Octomap>(out_steppable, 1);
-    pub_obstacle = nh.advertise<octomap_msgs::Octomap>(out_obstacle, 1);
-    pub_bounding_box = nh.advertise<visualization_msgs::Marker>(out_bounding_box, 1);
-
-    tf_listener = new tf::TransformListener();
-
-    ros::spin();
-    return 0;
+	
+	
 }

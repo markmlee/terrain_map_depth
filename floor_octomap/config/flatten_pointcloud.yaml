@@ -23,4 +23,4 @@ out_bounding_box: "/bounding_box"
 bounding_box: [-1.25, 0, -0.5, 0.5, -0.2, 0.2]  # min_x, max_x, min_y, max_y, min_z, max_z
 pre_crop_box: [-0.5, 0.5, -0.55, 2, -2.0, 2.0]  # min_x, max_x, min_y, max_y, min_z, max_z
 
-RUN_MODE: 1 # 1 - 징검다리/외나무다리, 2 - 장애물
+RUN_MODE: 1 # 1 - 징검다리, 2 외나무다리, 3 - 장애물

@@ -1,4 +1,4 @@
-RUN_MODE_PLAN: 2 # 1 - 징검다리, 2 외나무다리, 3 - 장애물
+RUN_MODE_PLAN: 1 # 1 - 징검다리, 2 외나무다리, 3 - 장애물
 
 SUPPORT_HEIGHT: 0.30
 

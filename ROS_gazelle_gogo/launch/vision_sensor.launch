@@ -1,0 +1,13 @@
+<launch>
+  <!-- realsense -->
+  <include file="$(find realsense2_camera)/launch/rs_t265.launch" />
+  <!-- kinect -->
+  <include file="/home/rainbow/vision_walking_flat_surface_ws/src/terrain_map_depth/Azure_Kinect_ROS_Driver/launch/driver.launch" />
+  <!-- rviz   
+       <node pkg="rviz" type="rviz" name="rviz" args="-d $(find gogo_gazelle)/rviz/footstep_planning_example.rviz" />
+ -->
+       <arg name="rviz" default="true" />
+       <node if="$(arg rviz)" pkg="rviz" type="rviz" name="$(anon rviz)" respawn="false" output="screen" args="-d $(find gogo_gazelle)/rviz/footstep_planning_example.rviz" />
+       <node pkg="rosservice" type="rosservice" name="set_logger_level" args="call /$(anon rviz)/set_logger_level '{logger: 'rosout', level: 'ERROR'}'" />
+
+</launch>

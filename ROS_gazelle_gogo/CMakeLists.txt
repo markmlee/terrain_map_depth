@@ -66,6 +66,14 @@ add_executable(client_NP src/client_depth_NP.cpp)
 target_link_libraries(client_NP ${catkin_LIBRARIES})
 
 
+add_executable(client_SS src/client_depth_SS.cpp)
+target_link_libraries(client_SS ${catkin_LIBRARIES})
+
+
+add_executable(client_obstacle src/client_depth_obstacle.cpp)
+target_link_libraries(client_obstacle ${catkin_LIBRARIES})
+
+
 add_executable(csv src/exportCSV.cpp)
 target_link_libraries(csv ${catkin_LIBRARIES})
 

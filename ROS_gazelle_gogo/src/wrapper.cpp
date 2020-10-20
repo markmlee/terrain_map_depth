@@ -31,8 +31,8 @@
 #define robot_moving    3
 #define real_mode       0
 #define simul_mode      1
-#define PORT1 6000
-#define PORT2 6001
+#define PORT1 4002
+#define PORT2 4003
 #define IPAddr "192.168.0.30"
 
 int sock_status = 0, valread;

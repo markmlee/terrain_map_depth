@@ -65,7 +65,7 @@
 #include "geometry_msgs/PoseArray.h"
 
 // ========== PARAMS TO MODIFY FOR SCENARIO ==========
-#define END_AFTER_FOOTSTEP       13  //N-1 steps... starting from 0 and ending at N
+#define END_AFTER_FOOTSTEP       6  //N-1 steps... starting from 0 and ending at N
 
 //IFDEF case for blind test
 //#define this_is_blind_test
@@ -94,6 +94,7 @@
 
 #define D2R             0.0174533
 #define R2D             57.2958
+#define PI				3.14159
 
 const float  PELV_WIDTH = 0.22;
 
@@ -230,6 +231,12 @@ void goal_result_callback(const gogo_gazelle::MotionActionResultConstPtr& result
 		m.getRPY(roll, pitch, yaw);
 		std::cout << "R: "  << yaw << std::endl;
 		
+		//flip rotation=======================
+		if(yaw > 0)
+		yaw = yaw - PI;
+		
+		else if (yaw < 0)
+		yaw = yaw + PI;
 		
 		
 		//store in goal  ====================================
@@ -533,21 +540,42 @@ time_out_counter = 1000;
 				ROS_INFO("baselink X:%.2f, Y:%.2f, roll:%.2f, pitch:%.2f, yaw:%.2f",current_base_link.position.x ,current_base_link.position.y, roll*R2D, pitch*R2D, yaw*R2D);
 				
 				
+				
+				
 				//for(int i = 0; i < TOTALFOOTSTEP; i ++){
 				for(int i = 0; i < footsteps_stamped_goal.steps.size(); i ++){
 					
 					if(i>= TOTALFOOTSTEP) break; //ensure doesn't exceed msg size
+					
+					
+					//convert quat to rpy
+					tf::Quaternion q(
+					footsteps_stamped_goal.steps[i].pose.orientation.x,
+					footsteps_stamped_goal.steps[i].pose.orientation.y,
+					footsteps_stamped_goal.steps[i].pose.orientation.z,
+					footsteps_stamped_goal.steps[i].pose.orientation.w);
+					tf::Matrix3x3 m(q);
+					double roll_goal, pitch_goal, yaw_goal;
+					m.getRPY(roll_goal, pitch_goal, yaw_goal);
+					
+					//flip rotation=======================
+					if(yaw_goal > 0)
+					yaw_goal = yaw_goal - PI;
+					
+					else if (yaw_goal < 0)
+					yaw_goal = yaw_goal + PI;
+				
 
 					//update values
 					walking_goal.des_footsteps[5*i + 0] = footsteps_stamped_goal.steps[i].pose.position.x + current_ref_foot_pose.position.x;
 					walking_goal.des_footsteps[5*i + 1] = footsteps_stamped_goal.steps[i].pose.position.y + current_ref_foot_pose.position.y;
-					walking_goal.des_footsteps[5*i + 2] = 0; //yaw_goal;
+					walking_goal.des_footsteps[5*i + 2] = (yaw + yaw_goal)*R2D;
 					walking_goal.des_footsteps[5*i + 3] = i + cur_phase;
 					
 					if((cur_phase+i)%2 == 0) walking_goal.des_footsteps[5*i + 4] = RIGHT;
 					else walking_goal.des_footsteps[5*i + 4] = LEFT;
 					
-					ROS_WARN("GoalX: %f, GoalY: %f, GoalR: %f, Phase: %f, L/R: %f\n",walking_goal.des_footsteps[5*i + 0], walking_goal.des_footsteps[5*i + 1], walking_goal.des_footsteps[5*i + 2], walking_goal.des_footsteps[5*i + 3], walking_goal.des_footsteps[5*i + 4]);
+					ROS_WARN("GoalX: %f, GoalY: %f, GoalDeg: %f, Phase: %f, L/R: %f\n",walking_goal.des_footsteps[5*i + 0], walking_goal.des_footsteps[5*i + 1], walking_goal.des_footsteps[5*i + 2], walking_goal.des_footsteps[5*i + 3], walking_goal.des_footsteps[5*i + 4]);
 		
 				}
 
@@ -586,7 +614,7 @@ time_out_counter = 1000;
 			case STOP:
 			{
 				ROS_INFO("================ state 4. Send STOP command ================\n");
-				ros::Duration(2.4).sleep(); //stop after 2 footsteps time
+				ros::Duration(1.4).sleep(); //stop after 2 footsteps time
 				walking_goal.footstep_flag = false;
 				walking_goal.ros_cmd = ROSWALK_STOP;
 				

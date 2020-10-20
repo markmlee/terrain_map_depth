@@ -65,7 +65,7 @@
 #include "geometry_msgs/PoseArray.h"
 
 // ========== PARAMS TO MODIFY FOR SCENARIO ==========
-#define END_AFTER_FOOTSTEP       13  //N-1 steps... starting from 0 and ending at N
+#define END_AFTER_FOOTSTEP       9  //N-1 steps... starting from 0 and ending at N
 
 //IFDEF case for blind test
 //#define this_is_blind_test
@@ -244,7 +244,7 @@ void goal_result_callback(const gogo_gazelle::MotionActionResultConstPtr& result
         footstep_msg.pose.orientation.w = footsteps_stamped->steps[i].pose.orientation.w;
         
         //give y value gain of 0.8 to move from edge  ====================================
-        footstep_msg.pose.position.y = 0.8 * footstep_msg.pose.position.y;
+        footstep_msg.pose.position.y = footstep_msg.pose.position.y;
         
         
         //overwrite 1st step if smaller than 0.1m  ====================================

@@ -55,8 +55,8 @@ protected:
     const double        ROBOT_HEIGHT = 0.8;
 
     //This is default (true) footsize
-    double        FOOTSTEP_WIDTH  = 0.22;  // [m]
-    double        FOOTSTEP_HEIGHT = 0.15; // [m]
+    double        FOOTSTEP_WIDTH  = 0.24;//0.25;//0.22;  // [m]
+    double        FOOTSTEP_HEIGHT = 0.20;//0.22;//0.15; // [m]
 
 
     const double        GOAL_SEARCH_MAX_RADIUS = 1.2;
@@ -109,7 +109,7 @@ public:
 
 #ifdef VIS_START_POSE
         update_tf();
-        //update_param(); //update param from default values
+        update_param(); //update param from default values
         Configuration* transformed_start_pose = start_pose->get_transformed_Configuration(tf_transform_baselink2map);  //transform
         RobotModel robot_model(quadmap::point2d(start_pose->x(), start_pose->y()), robot_size, start_pose->r());
         visualization::robot_model_to_marker(robot_model, start_pose_marker, VIS_FRAME_ID);
@@ -184,13 +184,15 @@ public:
 //            return;
         if(environment_flag)
             return;
-
+/*
         auto environment_3d = (octomap::OcTree*)octomap_msgs::binaryMsgToMap(*_msg);
 
         delete environment;
         environment = new quadmap::QuadTree(environment_3d->getResolution());
         utils::project_environment(environment_3d, environment, 0.1, 5.0);
         planner.set_environment(environment);
+
+
 //        std::cout << "Set environment: " << environment->size() << std::endl;
 
 #ifdef VIS_ENVIRONMENT
@@ -198,7 +200,7 @@ public:
 #endif
 
         delete environment_3d;
-
+*/
         environment_flag = true;
     }
     /*
@@ -593,6 +595,8 @@ public:
     /*Modify footstep param in the .yaml file according to the scenario */
     void update_param(){
 
+      //RUN_MODE_PLAN = 3; //hard code for testing
+
       if(RUN_MODE_PLAN == 1)
       {
         ROS_INFO("Stepping stone param for footstep");
@@ -719,7 +723,7 @@ int main(int argc, char** argv)
 
     FootstepPlanningServer footstep_planning_server;
     ros::Rate loop_rate(100);
-    ROS_ERROR("new version w fast plan, next foot, replan. Param!");
+    ROS_ERROR("new version w fast plan, next foot, replan. Param!!");
 
     try {
         while (true) {
